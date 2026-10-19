@@ -1,0 +1,916 @@
+<title>YardFlow Prototype</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anek+Devanagari:wght@600;700&family=Mukta:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Light theme only (outdoor use). Layout: the product on the left (phone for driver and gate, full width for the yard dashboard), a demo-control rail on the right. Anek for headings, Mukta for text: both cover English and Hindi. */
+:root{
+  color-scheme:light;
+  --bg:#E9EDF1; --surface:#FFFFFF; --sunk:#F3F5F8; --ink:#15212C; --muted:#56646F; --line:#D3DAE1;
+  --accent:#1C5DA6; --accent-t:#E6EEF8; --appbar:#16222D; --appbar-ink:#E8EEF3;
+  --ok:#1C7343; --warn:#975800; --bad:#AE2318; --sys:#4A5561;
+  --ok-t:#E3F2E9; --warn-t:#FCEFD9; --bad-t:#FBE5E3; --sys-t:#E7EAEE;
+  --display:"Anek Devanagari","Mukta",Arial,sans-serif;
+  --body:"Mukta","Noto Sans Devanagari",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding-block:18px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+header.top h1{font-family:var(--display);font-weight:700;font-size:30px;margin:0;line-height:1}
+header.top p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.concept{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--warn);border:1px solid currentColor;border-radius:4px;padding:4px 8px}
+.roles{display:flex;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;margin-bottom:12px}
+.roles button{flex:1 1 140px;border:0;background:transparent;color:var(--muted);font:600 14px var(--body);padding:9px 8px;border-radius:7px;cursor:pointer}
+.roles button[aria-pressed="true"]{background:var(--appbar);color:var(--appbar-ink)}
+.grid{display:grid;grid-template-columns:400px minmax(0,1fr);gap:24px;align-items:start}
+.grid.wide{grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:980px){.grid,.grid.wide{grid-template-columns:minmax(0,1fr)}}
+.phone{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:10px;box-shadow:0 18px 40px -26px rgba(10,20,30,.5);max-width:400px;margin:0 auto}
+.screen{border-radius:20px;overflow:hidden;background:var(--sunk);height:780px;display:flex;flex-direction:column}
+@media (max-width:480px){.phone{border-radius:16px;padding:4px}.screen{border-radius:12px;height:calc(100vh - 150px);min-height:600px}}
+.appbar{background:var(--appbar);color:var(--appbar-ink);padding:11px 14px 10px;display:flex;align-items:center;gap:10px}
+.brand{font-family:var(--display);font-weight:700;font-size:19px}
+.where{font-size:12px;opacity:.78;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conn{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:#46C17C;display:inline-block}
+.conn.down .dot{background:#F2766B}
+.langbtn{border:1px solid rgba(255,255,255,.45);background:transparent;color:var(--appbar-ink);font:600 14px var(--body);border-radius:8px;padding:5px 10px;min-height:36px;cursor:pointer}
+.body{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px}
+.foot{padding:12px 16px 14px;display:flex;flex-direction:column;gap:8px;background:var(--sunk);border-top:1px solid var(--line)}
+h2.t{font-family:var(--display);font-weight:700;font-size:26px;margin:0;line-height:1.15}
+h3.s{font-family:var(--display);font-weight:700;font-size:18px;margin:0}
+.sub{color:var(--muted);margin:0;font-size:15px}
+.small{font-size:13px}
+.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border-radius:12px;border:2px solid var(--line);background:var(--surface);color:var(--ink);font:600 17px var(--body);cursor:pointer;padding:8px 14px;text-decoration:none;text-align:center}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.go{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btn.danger{background:var(--surface);color:var(--bad);border-color:var(--bad)}
+.btn.sm{min-height:40px;font-size:14px;border-radius:9px;width:auto;padding:6px 12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.linkbtn{background:none;border:0;color:var(--accent);font:600 15px var(--body);cursor:pointer;padding:6px 0;text-align:left}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>.lab{font-size:15px;font-weight:600}
+.hint{font-size:13px;color:var(--muted)}
+input.in,select.in{font:500 17px var(--body);color:var(--ink);background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:10px 12px;width:100%;min-height:50px}
+input.in.mono{font-family:var(--mono);font-size:16px;letter-spacing:.03em}
+input.in[aria-invalid="true"]{border-color:var(--bad)}
+.err{color:var(--bad);font-size:14px;font-weight:600;margin:0}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.seg button{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;min-height:50px;padding:6px 8px;font:600 15px var(--body);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.seg button small{font-weight:400;font-size:12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-t)}
+.dur{display:grid;grid-template-columns:50px minmax(0,1fr) 50px;gap:6px}
+.dur button{border:2px solid var(--line);background:var(--surface);border-radius:10px;font:700 22px var(--body);cursor:pointer;color:var(--ink)}
+.dur input{text-align:center}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card.dim{background:var(--sunk)}
+.yhead{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.yname{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.15}
+.yloc{color:var(--muted);font-size:13px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:13px;border-radius:6px;padding:2px 8px;white-space:nowrap}
+.pill.ok{background:var(--ok-t);color:var(--ok)} .pill.warn{background:var(--warn-t);color:var(--warn)} .pill.bad{background:var(--bad-t);color:var(--bad)} .pill.sys{background:var(--sys-t);color:var(--sys)} .pill.neutral{background:var(--sunk);color:var(--ink);border:1px solid var(--line)} .pill.blue{background:var(--accent-t);color:var(--accent)}
+ul.facts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14px}
+ul.facts li{display:flex;gap:6px}
+ul.facts li::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--muted);margin-top:9px;flex:none}
+ul.why li::before{background:var(--bad)}
+.est{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-top:1px dashed var(--line);padding-top:8px}
+.est b{font-family:var(--display);font-size:24px}
+.note{background:var(--warn-t);border-radius:10px;padding:10px 12px;font-size:14px}
+.note.blue{background:var(--accent-t)}
+.calc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.calc .row{display:flex;justify-content:space-between;gap:10px}
+.calc .row span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.calc .tot{border-top:1px solid var(--line);padding-top:6px;margin-top:4px;font-weight:700;font-size:17px}
+dl.kv{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+dl.kv dt{color:var(--muted);font-size:14px}
+dl.kv dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:15px;font-weight:600;background:var(--surface);border:2px solid var(--line);border-radius:12px;padding:12px}
+.check input{width:24px;height:24px;flex:none;margin-top:1px}
+.band{border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;color:#fff}
+.band.ok{background:var(--ok)} .band.warn{background:var(--warn)} .band.bad{background:var(--bad)} .band.sys{background:var(--sys)}
+.band .ic{width:38px;height:38px;flex:none}
+.band .bt{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.05}
+.band .bs{font-size:15px;margin-top:3px;line-height:1.3}
+.code{font-family:var(--mono);font-size:28px;font-weight:500;letter-spacing:.08em;text-align:center}
+.pass{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.pass canvas{width:150px;height:150px;image-rendering:pixelated;border-radius:6px}
+textarea.share{width:100%;min-height:150px;font:500 14px var(--body);border:2px solid var(--line);border-radius:10px;padding:10px;resize:vertical;color:var(--ink);background:var(--surface)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:8px 12px;font:500 14px var(--body);cursor:pointer}
+.chip.mine{border-color:var(--accent);color:var(--accent);font-weight:600}
+.viewfinder{position:relative;aspect-ratio:4/3;border-radius:14px;background:#0B1116;display:grid;place-items:center;max-width:100%}
+.viewfinder .frame{width:46%;aspect-ratio:1/1;border:3px solid #E8EEF3;border-radius:10px}
+.viewfinder .vlabel{position:absolute;bottom:8px;left:0;right:0;text-align:center;color:#AFC0CE;font-size:12px}
+.checklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.checklist li{display:flex;gap:8px;align-items:flex-start;font-size:15px}
+.checklist .mk{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:13px;font-weight:700;color:#fff;margin-top:1px}
+.mk.y{background:var(--ok)} .mk.n{background:var(--bad)} .mk.q{background:var(--line);color:var(--muted)}
+.ask{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ask p{margin:0;font-weight:600;font-size:16px}
+.bignum{font-family:var(--mono);font-size:26px;letter-spacing:.04em}
+.yn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.yn button{min-height:50px;border-radius:10px;border:2px solid var(--line);background:var(--surface);font:700 17px var(--body);cursor:pointer;color:var(--ink)}
+.yn button[aria-pressed="true"].yes{background:var(--ok);border-color:var(--ok);color:#fff}
+.yn button[aria-pressed="true"].no{background:var(--bad);border-color:var(--bad);color:#fff}
+.status2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.scard .lab{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.spinner{width:44px;height:44px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:40px auto 10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
+.rail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.panel h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ctrl{display:flex;flex-direction:column;gap:10px;font-size:14px}
+.ctrl .row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.mseg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.mseg button{border:0;background:var(--surface);color:var(--muted);font:600 13px var(--body);padding:6px 10px;cursor:pointer}
+.mseg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.clockbtns{display:flex;flex-wrap:wrap;gap:6px}
+.clockbtns button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;font:600 13px var(--body);cursor:pointer;color:var(--ink)}
+.clock{font-family:var(--mono);font-size:15px}
+select.mini{font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--surface);color:var(--ink);max-width:100%}
+.log{font-family:var(--mono);font-size:12px;max-height:300px;overflow:auto;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.log div{display:grid;grid-template-columns:86px minmax(0,1fr);gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
+.log .ts{color:var(--muted)} .log .ev{color:var(--accent);font-weight:500} .log .fx{color:var(--muted);display:block;word-break:break-word}
+.evid{font-size:13px;display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.tag{font-family:var(--mono);font-size:11px;font-weight:500;border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-right:6px;background:var(--sunk)}
+/* dashboard */
+.dash{display:flex;flex-direction:column;gap:14px;min-width:0}
+.dhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.dhead h2{font-family:var(--display);font-size:26px;margin:0}
+.ytabs{display:flex;flex-wrap:wrap;gap:6px}
+.ytabs button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font:600 14px var(--body);cursor:pointer;color:var(--ink)}
+.ytabs button[aria-pressed="true"]{background:var(--appbar);color:#fff;border-color:var(--appbar)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.kpi .v{font-family:var(--display);font-weight:700;font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{color:var(--muted);font-size:13px}
+.bar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden;margin-top:6px;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent)}
+.dsec{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.dsec h3{margin:0 0 8px;font-family:var(--display);font-size:18px;display:flex;align-items:center;gap:8px}
+.dsec h3 .count{font-family:var(--body);font-size:13px;color:var(--muted);font-weight:600}
+.tw{overflow-x:auto}
+table.dt{width:100%;border-collapse:collapse;font-size:14px;min-width:620px}
+table.dt th{text-align:left;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.dt td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.dt td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rowbtn{background:none;border:0;padding:0;color:var(--accent);font:600 14px var(--mono);cursor:pointer;text-decoration:underline}
+.empty{color:var(--muted);font-size:14px;padding:6px 0;margin:0}
+.search{font:500 15px var(--body);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-width:240px;max-width:100%;background:var(--surface);color:var(--ink)}
+.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.detail{grid-template-columns:minmax(0,1fr)}}
+ol.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+ol.tl li{display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px}
+ol.tl .w{color:var(--muted);font-family:var(--mono);font-size:12px;padding-top:2px}
+.payform{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px}
+.cfg{font-size:13px;color:var(--muted)}
+.cfg b{color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>YardFlow</h1>
+      <p>Find a container yard that fits, see its rules and estimated charge before booking, send the pass to the driver, check the truck at the gate, and bill from actual storage time.</p>
+    </div>
+    <span class="concept">Prototype · demo data · not the original project</span>
+  </header>
+  <div class="roles" role="group" aria-label="View">
+    <button id="role-book" data-role="book">1 · Book storage</button>
+    <button id="role-gate" data-role="gate">2 · Security gate</button>
+    <button id="role-dash" data-role="dash">3 · Yard dashboard</button>
+  </div>
+  <div class="grid" id="grid">
+    <div id="main"></div>
+    <aside class="rail" id="rail"></aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* =========================================================
+   Time: the demo clock counts minutes from Fri 16 Oct 2026, 10:00 (shown as local yard time).
+   ========================================================= */
+const BASE_MS = Date.UTC(2026, 9, 16, 10, 0);
+const DAY_OFFSET = 600; // base time is 600 minutes after midnight
+const dt = t => new Date(BASE_MS + t * 60000);
+const pad = n => String(n).padStart(2, '0');
+const hhmm = t => { const d = dt(t); return pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()); };
+const dayIdx = t => Math.floor((t + DAY_OFFSET) / 1440);
+const dayStart = i => i * 1440 - DAY_OFFSET;
+const DN = {en:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], hi:['रवि','सोम','मंगल','बुध','गुरु','शुक्र','शनि']};
+const MN = {en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], hi:['जन॰','फ़र॰','मार्च','अप्रैल','मई','जून','जुल॰','अग॰','सित॰','अक्टू॰','नव॰','दिस॰']};
+const fday = (t, l) => { const d = dt(t); l = l || 'en'; return DN[l][d.getUTCDay()] + ' ' + d.getUTCDate() + ' ' + MN[l][d.getUTCMonth()]; };
+const fdt = (t, l) => fday(t, l) + ', ' + hhmm(t);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr = n => '₹' + Math.round(n).toLocaleString('en-IN');
+const $ = s => document.querySelector(s);
+
+/* =========================================================
+   Yard configuration. DEMO DATA: fictional yards, illustrative amounts.
+   Tariff structures mirror patterns in published Indian CFS/ICD/terminal
+   schedules (per started day, calendar day or part thereof, free day,
+   escalating slabs, 40 ft at 2x 20 ft, reefer power per started 4 hours).
+   No public hourly storage tariff was found: the hourly yard tests the model.
+   ========================================================= */
+const YARDS = [
+  {id:'KCY', name:{en:'Konkan Container Yard', hi:'कोंकण कंटेनर यार्ड'}, loc:{en:'Uran, Navi Mumbai', hi:'उरण, नवी मुंबई'},
+   open:[0,24], sizes:[20,40], types:['dry'], capHour:3, capTEU:120, baseTEU:88, early:60, late:120,
+   tariff:{unit:'block24', rate:{20:900, 40:1800}, min:1, max:{n:15, u:'day'}}},
+  {id:'PRH', name:{en:'Panvel Reefer Hub', hi:'पनवेल रीफ़र हब'}, loc:{en:'Panvel, Raigad', hi:'पनवेल, रायगढ़'},
+   open:[6,22], sizes:[20,40], types:['dry','reefer'], capHour:2, capTEU:60, baseTEU:40, early:30, late:60,
+   tariff:{unit:'hour', rate:{20:45, 40:90}, min:6, max:{n:72, u:'hour'}, power:{hours:4, rate:{20:350, 40:500}}}},
+  {id:'TCP', name:{en:'Taloja Container Park', hi:'तलोजा कंटेनर पार्क'}, loc:{en:'Taloja MIDC, Navi Mumbai', hi:'तलोजा एमआईडीसी, नवी मुंबई'},
+   open:[8,20], sizes:[20,40], types:['dry'], capHour:4, capTEU:200, baseTEU:194, early:60, late:60,
+   tariff:{unit:'calendar', slabs:[{from:1,to:1,rate:{20:0,40:0}},{from:2,to:5,rate:{20:500,40:1000}},{from:6,to:null,rate:{20:800,40:1600}}], min:1, max:{n:30, u:'day'}}},
+  {id:'KMY', name:{en:'Kalamboli Mini Yard', hi:'कलंबोली मिनी यार्ड'}, loc:{en:'Kalamboli, Navi Mumbai', hi:'कलंबोली, नवी मुंबई'},
+   open:[7,19], sizes:[20], types:['dry'], capHour:2, capTEU:30, baseTEU:24, early:60, late:60,
+   tariff:{unit:'block24', rate:{20:700}, min:1, max:{n:2, u:'day'}}}
+];
+const Y = id => YARDS.find(y => y.id === id);
+const teu = size => size === 40 ? 2 : 1;
+
+/* =========================================================
+   Billing engine: one function for both the estimate and the final bill.
+   ========================================================= */
+function unitsFor(tf, s, e){
+  const m = Math.max(1, e - s);
+  if(tf.unit === 'hour') return Math.ceil(m / 60);
+  if(tf.unit === 'block24') return Math.ceil(m / 1440);
+  return dayIdx(e - 1) - dayIdx(s) + 1; // calendar day or part thereof
+}
+function rateAt(tf, i, size){
+  if(tf.slabs){ const sl = tf.slabs.find(x => i >= x.from && (x.to == null || i <= x.to)); return sl.rate[size]; }
+  return tf.rate[size];
+}
+function bill(y, size, type, s, e){
+  const tf = y.tariff, units = unitsFor(tf, s, e), billed = Math.max(units, tf.min || 1);
+  const groups = [];
+  for(let i = 1; i <= billed; i++){
+    const r = rateAt(tf, i, size), g = groups[groups.length - 1];
+    if(g && g.r === r){ g.to = i; g.n++; } else groups.push({from:i, to:i, n:1, r});
+  }
+  groups.forEach(g => { g.amt = g.n * g.r; });
+  let power = null;
+  if(type === 'reefer' && tf.power){ const blocks = Math.ceil(Math.max(1, e - s) / (tf.power.hours * 60)); power = {blocks, h:tf.power.hours, r:tf.power.rate[size], amt:blocks * tf.power.rate[size]}; }
+  const total = groups.reduce((a, g) => a + g.amt, 0) + (power ? power.amt : 0);
+  return {unit:tf.unit, mins:e - s, units, billed, minApplied:billed > units, groups, power, total};
+}
+const maxMins = tf => tf.max.u === 'day' ? tf.max.n * 1440 : tf.max.n * 60;
+
+/* =========================================================
+   ISO 6346 container number check and Indian truck number format.
+   ========================================================= */
+const LV = {}; (() => { let v = 10; for(const c of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'){ if(v % 11 === 0) v++; LV[c] = v; v++; } })();
+function checkDigit(s10){ let sum = 0; for(let i = 0; i < 10; i++){ const ch = s10[i]; sum += (/\d/.test(ch) ? +ch : LV[ch]) * Math.pow(2, i); } return (sum % 11) % 10; }
+const makeCont = (p, d6) => p + ' ' + d6 + checkDigit(p + d6);
+function contCheck(v){ const s = String(v || '').toUpperCase().replace(/[\s-]/g, ''); if(!/^[A-Z]{4}\d{7}$/.test(s)) return {ok:false, k:'e_cont_fmt'}; if(checkDigit(s.slice(0,10)) !== +s[10]) return {ok:false, k:'e_cont_chk'}; return {ok:true, v:s.slice(0,4) + ' ' + s.slice(4)}; }
+function truckCheck(v){ const s = String(v || '').toUpperCase().replace(/[\s-]/g, ''); const m = s.match(/^([A-Z]{2})(\d{1,2})([A-Z]{1,3})(\d{4})$/); return m ? {ok:true, v:m[1] + ' ' + m[2] + ' ' + m[3] + ' ' + m[4]} : {ok:false, k:'e_truck'}; }
+const mobCheck = v => /^[6-9]\d{9}$/.test(String(v || '').replace(/\D/g, '').slice(-10)) && String(v || '').replace(/\D/g, '').length === 10;
+
+/* =========================================================
+   Text: English and Hindi for every driver and gate screen.
+   ========================================================= */
+const TX = {
+en:{
+ lang_btn:'हिंदी', online:'Online', offline:'Offline', back:'Back', change:'Change',
+ home_t:'Find container storage', home_s:'Tell us about the container. We show yards that can take it, with their rules and price.',
+ who_l:'Who is booking?', who_driver:'I am the driver', who_other:'For another driver',
+ date_l:'Arrival date', today:'Today', tomorrow:'Tomorrow', time_l:'Arrival time',
+ dur_l:'How long will it stay?', hours:'Hours', days:'Days', size_l:'Container size', ft:'{n} ft', type_l:'Container type', dry:'Standard dry', reefer:'Refrigerated (reefer)',
+ search_btn:'Show yards', my_b:'My bookings ({n})',
+ e_dur:'Enter a stay of at least 1 {u}.', e_past:'That time has already passed. Choose a later time.', e_bigdur:'Enter a stay of 90 days or less.',
+ res_t:'Yards for your container', res_sum:'{size} ft {type} · {when} · {dur}', demo_note:'Demo yards and sample prices. Not real availability.',
+ sort_l:'Sort by', sort_price:'Lowest estimate', sort_space:'Most space',
+ fits:'Fits', notfit:'Not suitable', n_fit:'{n} yards fit', n_notfit:'{n} not suitable',
+ slots_l:'{n} of {m} arrival slots free at {time}', space_l:'Space: {n} of {m} TEU free', takes_l:'Takes {v}',
+ est_for:'Estimate for {d}', choose:'Choose this yard', why_not:'Why not',
+ r_size:'Does not take {size} ft containers', r_type:'No refrigerated (reefer) storage', r_max:'Stay too long: maximum is {max}', r_hours:'Closed at {time} ({open})', r_slots:'No arrival slots left at {time}', r_space:'No space left for this container',
+ min_note:'Shorter than the minimum: you are charged for {v}.',
+ empty_res:'No yard fits right now. Try another arrival time, a shorter stay or another size.',
+ det_t:'Container and driver', cont_l:'Container number', cont_h:'4 letters and 7 digits, as painted on the box',
+ truck_l:'Truck number', truck_h:'As on the number plate', dname_l:'Driver name', dmob_l:'Driver mobile', mob_h:'10 digits',
+ yname_l:'Your name', ymob_l:'Your mobile', owner_h:'You are booking for someone else. You can send them the pass after booking.',
+ next_review:'Next: price and rules',
+ e_cont_fmt:'Container number must be 4 letters and 7 digits.', e_cont_chk:'This container number fails its check digit. Please re-check the number on the box.', e_truck:'Enter a truck number like MH 46 BU 2193.', e_name:'Enter the driver\'s name.', e_mob:'Enter a 10-digit mobile number starting with 6, 7, 8 or 9.', e_oname:'Enter your name.', e_omob:'Enter your 10-digit mobile number.',
+ rev_t:'Price and yard rules', appt_l:'Arrival', stay_l:'Planned stay', cont_s:'Container', truck_s:'Truck', driver_s:'Driver', owner_s:'Booked by',
+ basis_t:'How this yard charges', calc_t:'How we estimated', est_t:'Estimated storage charge', rules_t:'Yard rules',
+ final_note:'This is an estimate. The final bill depends on how long the container actually stays, under this yard\'s rules.',
+ no_fees:'YardFlow adds no booking fee, deposit or penalty.',
+ agree:'I have read the price and the yard rules', e_agree:'Please tick the box to confirm you have read the price and rules.',
+ confirm:'Confirm booking', e_full:'This yard just filled up for that time. Go back and choose another yard.',
+ done_t:'Booking confirmed', code_l:'Booking code', code_h:'If the QR does not scan, the guard can type this code.', qr_ph:'Demo QR: placeholder, not scannable',
+ yard_s:'Yard', status_s:'Status', estch_s:'Estimated charge', tariff_s:'Tariff',
+ share_t:'Send the pass to the driver', copy:'Copy pass details', copied:'Copied. Paste it into any chat or SMS.', copy_fail:'Copy is blocked here. Select the text above and copy it yourself.',
+ wa:'Open in WhatsApp', wa_note:'Opens WhatsApp with this message ready. Nothing is sent until you press Send there.',
+ new_search:'New search', mb_t:'My bookings', mb_empty:'No bookings yet. Search for a yard to make one.', show_pass:'Show pass and send', cancel_b:'Cancel booking', cancel_q:'Cancel this booking? Its slot will be released.', cancel_yes:'Yes, cancel', cancel_no:'Keep it', cancelled_ok:'Booking cancelled. The slot is free again.',
+ st_booked:'Booked · awaiting arrival', st_entered:'Truck inside', st_in_storage:'In storage', st_exited:'Collected', st_cancelled:'Cancelled',
+ bill_estimate:'Estimate', bill_outstanding:'Final bill: payment due', bill_paid:'Payment recorded by yard',
+ share_txt:'YardFlow booking {code}\nYard: {yard}, {loc}\nArrive: {when}\nTruck: {truck}\nContainer: {cont} ({size} ft {type})\nPlanned stay: {dur}\nEstimated storage charge: {est} ({basis})\nShow this code or the QR at the gate.',
+ b_hour:'{r} per started hour ({size} ft)', b_block:'{r} per started 24 hours ({size} ft)', b_cal:'Per calendar day or part of a day ({size} ft)',
+ slab_free:'{label}: free', slab_r:'{label}: {r} per day', min_l:'Minimum charge: {v}', max_l:'Maximum stay: {v}', power_l:'Reefer power: {r} per started {h} hours',
+ hours_l:'Open {a}:00 to {b}:00', hours24:'Open 24 hours', cancel_l:'Cancellation rule: not published by this yard. Ask before booking.',
+ start_l:'The charge runs from when the container is placed in storage until it is collected, not from your booked time.',
+ window_l:'Entry allowed from {e} min before to {l} min after your time.',
+ c_dur:'Planned stay: {d}', c_units:'Counted as {v}', c_min:'Minimum applies: charged as {v}', c_power:'Reefer power: {n} × {r} (per {h} h)', c_total:'Estimated total',
+ lab_h1:'Hour {a}', lab_h:'Hours {a}–{b}', lab_b1:'Block {a}', lab_b:'Blocks {a}–{b}', lab_d1:'Day {a}', lab_d:'Days {a}–{b}', lab_dplus:'Day {a} onwards',
+ u_hour1:'1 started hour', u_hours:'{n} started hours', u_block1:'1 started 24-hour block', u_blocks:'{n} started 24-hour blocks', u_cal1:'1 calendar day', u_cals:'{n} calendar days', u_day1:'1 day', u_days:'{n} days', u_h1:'1 hour', u_hs:'{n} hours', u_hu:'hour', u_du:'day',
+ /* gate */
+ gate_at:'Gate · {yard}', scan_t:'Scan the pass', scan_s:'Point the camera at the driver\'s QR, or type the booking code.', vf:'Demo camera · tap a pass below', demo:'Driver shows… (demo)', c_unread:'Damaged screen', c_invalid:'Not a YardFlow code',
+ hint:'Can\'t read it. Ask the driver to make the screen brighter, or type the code.', code_in:'Booking code', check_btn:'Check', e_code:'Type the booking code first.',
+ checking:'Checking…', down_t:'System down', down_s:'The pass can\'t be checked. Don\'t open the gate.', down_say:'Tell the driver: the problem is ours, not your booking. Use the yard\'s register until the system is back.', retry:'Try again',
+ refused_t:'Don\'t let in', closed:'Keep the gate closed.', next:'Next truck', review_btn:'Send to supervisor for review', review_sent:'Sent for review. The gate stays closed.',
+ chk_exists:'Booking found', chk_yard:'Booking is for this yard', chk_usable:'Booking not used yet', chk_window:'Arrival time is within the entry window', chk_truck:'Truck number matches', chk_cont:'Container number matches',
+ f_notfound:'No booking has this code.', f_invalid:'This is not a YardFlow pass.', f_yard:'This booking is for {yard}.', f_used:'Already used: this truck entered at {at}.', f_cancel:'This booking was cancelled.', f_early:'Too early. Booked for {appt}. Entry opens at {from}.', f_late:'Too late. The entry window closed at {to}.', f_truck:'Truck number does not match the booking ({exp}).', f_cont:'Container number does not match the booking ({exp}).',
+ vc_t:'Check the truck and container', vc_s:'Booking is valid. Compare these numbers with the truck in front of you.', vc_truck:'Is this the truck number?', vc_cont:'Is this the container number?', yes:'Yes', no:'No', open_gate:'Open gate (simulated)',
+ g_sent_t:'Opening gate…', g_sent_s:'Wait. The truck has not entered yet.', wait:'Please wait…', g_ok_t:'Gate open', g_ok_s:'Let the truck in. The container goes to the storage area.',
+ g_no_t:'No reply from gate', g_no_s:'Look at the barrier. If it did not lift, try again or report a fault.', broken:'Report gate fault', g_fault_s:'Fault reported. The booking is still valid; the truck has not entered.',
+ lab_bk:'Booking', lab_gate:'Gate', g_idle:'Closed', g_sent:'Opening…', g_confirmed:'Open', g_unconfirmed:'No reply', g_fault:'Fault'
+},
+hi:{
+ lang_btn:'English', online:'ऑनलाइन', offline:'ऑफ़लाइन', back:'वापस', change:'बदलें',
+ home_t:'कंटेनर स्टोरेज खोजें', home_s:'कंटेनर के बारे में बताएँ। हम वे यार्ड दिखाएँगे जो इसे रख सकते हैं, उनके नियम और कीमत के साथ।',
+ who_l:'बुकिंग कौन कर रहा है?', who_driver:'मैं ड्राइवर हूँ', who_other:'किसी और ड्राइवर के लिए',
+ date_l:'पहुँचने की तारीख', today:'आज', tomorrow:'कल', time_l:'पहुँचने का समय',
+ dur_l:'कितने समय रखना है?', hours:'घंटे', days:'दिन', size_l:'कंटेनर साइज़', ft:'{n} फ़ुट', type_l:'कंटेनर प्रकार', dry:'सामान्य (ड्राई)', reefer:'रेफ्रिजरेटेड (रीफ़र)',
+ search_btn:'यार्ड दिखाएँ', my_b:'मेरी बुकिंग ({n})',
+ e_dur:'कम से कम 1 {u} का समय डालें।', e_past:'यह समय निकल चुका है। बाद का समय चुनें।', e_bigdur:'90 दिन या उससे कम का समय डालें।',
+ res_t:'आपके कंटेनर के लिए यार्ड', res_sum:'{size} फ़ुट {type} · {when} · {dur}', demo_note:'डेमो यार्ड और नमूना कीमतें। असली उपलब्धता नहीं।',
+ sort_l:'क्रम', sort_price:'सबसे कम अनुमान', sort_space:'सबसे ज़्यादा जगह',
+ fits:'सही है', notfit:'सही नहीं', n_fit:'{n} यार्ड सही हैं', n_notfit:'{n} सही नहीं',
+ slots_l:'{time} पर {m} में से {n} जगह खाली', space_l:'जगह: {m} में से {n} TEU खाली', takes_l:'लेता है: {v}',
+ est_for:'{d} का अनुमान', choose:'यह यार्ड चुनें', why_not:'क्यों नहीं',
+ r_size:'{size} फ़ुट कंटेनर नहीं लेता', r_type:'रीफ़र कंटेनर रखने की सुविधा नहीं', r_max:'अवधि बहुत लंबी: अधिकतम {max}', r_hours:'{time} पर बंद ({open})', r_slots:'{time} पर कोई जगह नहीं बची', r_space:'इस कंटेनर के लिए जगह नहीं बची',
+ min_note:'न्यूनतम से कम है: {v} का शुल्क लगेगा।',
+ empty_res:'अभी कोई यार्ड सही नहीं। दूसरा समय, कम अवधि या दूसरा साइज़ आज़माएँ।',
+ det_t:'कंटेनर और ड्राइवर', cont_l:'कंटेनर नंबर', cont_h:'4 अक्षर और 7 अंक, जैसा डिब्बे पर लिखा है',
+ truck_l:'ट्रक नंबर', truck_h:'जैसा नंबर प्लेट पर है', dname_l:'ड्राइवर का नाम', dmob_l:'ड्राइवर का मोबाइल', mob_h:'10 अंक',
+ yname_l:'आपका नाम', ymob_l:'आपका मोबाइल', owner_h:'आप किसी और के लिए बुक कर रहे हैं। बुकिंग के बाद आप उन्हें पास भेज सकते हैं।',
+ next_review:'आगे: कीमत और नियम',
+ e_cont_fmt:'कंटेनर नंबर में 4 अक्षर और 7 अंक होने चाहिए।', e_cont_chk:'इस कंटेनर नंबर का चेक अंक गलत है। डिब्बे पर लिखा नंबर दोबारा देखें।', e_truck:'MH 46 BU 2193 जैसा ट्रक नंबर डालें।', e_name:'ड्राइवर का नाम डालें।', e_mob:'6, 7, 8 या 9 से शुरू होने वाला 10 अंकों का मोबाइल नंबर डालें।', e_oname:'अपना नाम डालें।', e_omob:'अपना 10 अंकों का मोबाइल नंबर डालें।',
+ rev_t:'कीमत और यार्ड के नियम', appt_l:'पहुँचना', stay_l:'तय अवधि', cont_s:'कंटेनर', truck_s:'ट्रक', driver_s:'ड्राइवर', owner_s:'बुक करने वाले',
+ basis_t:'यह यार्ड शुल्क कैसे लेता है', calc_t:'अनुमान कैसे लगाया', est_t:'अनुमानित स्टोरेज शुल्क', rules_t:'यार्ड के नियम',
+ final_note:'यह अनुमान है। अंतिम बिल इस यार्ड के नियमों के अनुसार कंटेनर के असल में रुकने के समय पर निर्भर करेगा।',
+ no_fees:'YardFlow कोई बुकिंग फ़ीस, जमा राशि या जुर्माना नहीं जोड़ता।',
+ agree:'मैंने कीमत और यार्ड के नियम पढ़ लिए हैं', e_agree:'कृपया बॉक्स पर टिक करें कि आपने कीमत और नियम पढ़ लिए हैं।',
+ confirm:'बुकिंग पक्की करें', e_full:'इस समय के लिए यार्ड अभी भर गया। वापस जाकर दूसरा यार्ड चुनें।',
+ done_t:'बुकिंग पक्की हो गई', code_l:'बुकिंग कोड', code_h:'QR स्कैन न हो तो गार्ड यह कोड डाल सकता है।', qr_ph:'डेमो QR: नमूना, स्कैन नहीं होगा',
+ yard_s:'यार्ड', status_s:'स्थिति', estch_s:'अनुमानित शुल्क', tariff_s:'शुल्क दर',
+ share_t:'ड्राइवर को पास भेजें', copy:'पास की जानकारी कॉपी करें', copied:'कॉपी हो गया। किसी भी चैट या SMS में पेस्ट करें।', copy_fail:'यहाँ कॉपी नहीं हो सका। ऊपर का टेक्स्ट चुनकर खुद कॉपी करें।',
+ wa:'WhatsApp में खोलें', wa_note:'WhatsApp यह संदेश तैयार करके खुलेगा। वहाँ Send दबाने तक कुछ नहीं भेजा जाएगा।',
+ new_search:'नई खोज', mb_t:'मेरी बुकिंग', mb_empty:'अभी कोई बुकिंग नहीं। बुकिंग के लिए यार्ड खोजें।', show_pass:'पास देखें और भेजें', cancel_b:'बुकिंग रद्द करें', cancel_q:'यह बुकिंग रद्द करें? इसकी जगह खाली हो जाएगी।', cancel_yes:'हाँ, रद्द करें', cancel_no:'रहने दें', cancelled_ok:'बुकिंग रद्द हो गई। जगह फिर से खाली है।',
+ st_booked:'बुक है · पहुँचने का इंतज़ार', st_entered:'ट्रक अंदर', st_in_storage:'स्टोरेज में', st_exited:'उठा लिया गया', st_cancelled:'रद्द',
+ bill_estimate:'अनुमान', bill_outstanding:'अंतिम बिल: भुगतान बाकी', bill_paid:'यार्ड ने भुगतान दर्ज किया',
+ share_txt:'YardFlow बुकिंग {code}\nयार्ड: {yard}, {loc}\nपहुँचना: {when}\nट्रक: {truck}\nकंटेनर: {cont} ({size} फ़ुट {type})\nतय अवधि: {dur}\nअनुमानित स्टोरेज शुल्क: {est} ({basis})\nगेट पर यह कोड या QR दिखाएँ।',
+ b_hour:'हर शुरू हुए घंटे पर {r} ({size} फ़ुट)', b_block:'हर शुरू हुए 24 घंटे पर {r} ({size} फ़ुट)', b_cal:'हर कैलेंडर दिन या उसके हिस्से पर ({size} फ़ुट)',
+ slab_free:'{label}: मुफ़्त', slab_r:'{label}: {r} प्रति दिन', min_l:'न्यूनतम शुल्क: {v}', max_l:'अधिकतम अवधि: {v}', power_l:'रीफ़र बिजली: हर शुरू हुए {h} घंटे पर {r}',
+ hours_l:'खुला: {a}:00 से {b}:00', hours24:'24 घंटे खुला', cancel_l:'रद्द करने का नियम: यार्ड ने नहीं बताया। बुकिंग से पहले पूछें।',
+ start_l:'शुल्क कंटेनर स्टोरेज में रखने से लेकर उठाने तक लगता है, आपके बुक किए समय से नहीं।',
+ window_l:'आपके समय से {e} मिनट पहले से {l} मिनट बाद तक प्रवेश।',
+ c_dur:'तय अवधि: {d}', c_units:'गिना गया: {v}', c_min:'न्यूनतम लागू: {v} का शुल्क', c_power:'रीफ़र बिजली: {n} × {r} (हर {h} घंटे)', c_total:'अनुमानित कुल',
+ lab_h1:'घंटा {a}', lab_h:'घंटे {a}–{b}', lab_b1:'ब्लॉक {a}', lab_b:'ब्लॉक {a}–{b}', lab_d1:'दिन {a}', lab_d:'दिन {a}–{b}', lab_dplus:'दिन {a} से आगे',
+ u_hour1:'1 शुरू हुआ घंटा', u_hours:'{n} शुरू हुए घंटे', u_block1:'1 शुरू हुआ 24-घंटे का ब्लॉक', u_blocks:'{n} शुरू हुए 24-घंटे के ब्लॉक', u_cal1:'1 कैलेंडर दिन', u_cals:'{n} कैलेंडर दिन', u_day1:'1 दिन', u_days:'{n} दिन', u_h1:'1 घंटा', u_hs:'{n} घंटे', u_hu:'घंटा', u_du:'दिन',
+ gate_at:'गेट · {yard}', scan_t:'पास स्कैन करें', scan_s:'ड्राइवर के QR पर कैमरा रखें, या बुकिंग कोड लिखें।', vf:'डेमो कैमरा · नीचे पास चुनें', demo:'ड्राइवर दिखाता है… (डेमो)', c_unread:'टूटी स्क्रीन', c_invalid:'YardFlow कोड नहीं',
+ hint:'पढ़ा नहीं जा रहा। ड्राइवर से स्क्रीन की रोशनी बढ़ाने को कहें, या कोड लिखें।', code_in:'बुकिंग कोड', check_btn:'चेक करें', e_code:'पहले बुकिंग कोड लिखें।',
+ checking:'चेक हो रहा है…', down_t:'सिस्टम बंद है', down_s:'पास चेक नहीं हो सकता। गेट न खोलें।', down_say:'ड्राइवर से कहें: दिक्कत हमारी तरफ़ है, आपकी बुकिंग में नहीं। सिस्टम वापस आने तक यार्ड का रजिस्टर इस्तेमाल करें।', retry:'फिर कोशिश करें',
+ refused_t:'अंदर न जाने दें', closed:'गेट बंद रखें।', next:'अगला ट्रक', review_btn:'सुपरवाइज़र को जाँच के लिए भेजें', review_sent:'जाँच के लिए भेज दिया। गेट बंद रहेगा।',
+ chk_exists:'बुकिंग मिली', chk_yard:'बुकिंग इसी यार्ड की है', chk_usable:'बुकिंग अभी इस्तेमाल नहीं हुई', chk_window:'पहुँचने का समय प्रवेश सीमा में है', chk_truck:'ट्रक नंबर मेल खाता है', chk_cont:'कंटेनर नंबर मेल खाता है',
+ f_notfound:'इस कोड की कोई बुकिंग नहीं।', f_invalid:'यह YardFlow पास नहीं है।', f_yard:'यह बुकिंग {yard} की है।', f_used:'पहले इस्तेमाल हो चुका: यह ट्रक {at} पर अंदर गया।', f_cancel:'यह बुकिंग रद्द हो चुकी है।', f_early:'बहुत जल्दी। बुकिंग {appt} की है। प्रवेश {from} से।', f_late:'बहुत देर। प्रवेश का समय {to} पर खत्म हुआ।', f_truck:'ट्रक नंबर बुकिंग से मेल नहीं खाता ({exp})।', f_cont:'कंटेनर नंबर बुकिंग से मेल नहीं खाता ({exp})।',
+ vc_t:'ट्रक और कंटेनर जाँचें', vc_s:'बुकिंग सही है। ये नंबर सामने खड़े ट्रक से मिलाएँ।', vc_truck:'क्या ट्रक नंबर यही है?', vc_cont:'क्या कंटेनर नंबर यही है?', yes:'हाँ', no:'नहीं', open_gate:'गेट खोलें (सिमुलेशन)',
+ g_sent_t:'गेट खुल रहा है…', g_sent_s:'रुकें। ट्रक अभी अंदर नहीं गया।', wait:'कृपया रुकें…', g_ok_t:'गेट खुल गया', g_ok_s:'ट्रक को अंदर जाने दें। कंटेनर स्टोरेज एरिया में जाएगा।',
+ g_no_t:'गेट से जवाब नहीं आया', g_no_s:'बैरियर देखें। अगर नहीं उठा, तो फिर कोशिश करें या खराबी बताएँ।', broken:'गेट की खराबी बताएँ', g_fault_s:'खराबी दर्ज हुई। बुकिंग अभी भी मान्य है; ट्रक अंदर नहीं गया।',
+ lab_bk:'बुकिंग', lab_gate:'गेट', g_idle:'बंद', g_sent:'खुल रहा है…', g_confirmed:'खुला', g_unconfirmed:'जवाब नहीं', g_fault:'खराब'
+}};
+let S;
+const T = (k, v) => { let s = TX[S.lang][k]; if(s == null) s = TX.en[k]; if(s == null) s = k; if(v) Object.keys(v).forEach(n => { s = s.split('{' + n + '}').join(v[n]); }); return s; };
+const TL = (l, k, v) => { const keep = S.lang; S.lang = l; const r = T(k, v); S.lang = keep; return r; };
+
+/* text helpers */
+function unitCount(n, unit){
+  if(unit === 'hour') return n === 1 ? T('u_hour1') : T('u_hours', {n});
+  if(unit === 'block24') return n === 1 ? T('u_block1') : T('u_blocks', {n});
+  if(unit === 'calendar') return n === 1 ? T('u_cal1') : T('u_cals', {n});
+  if(unit === 'day') return n === 1 ? T('u_day1') : T('u_days', {n});
+  return n === 1 ? T('u_h1') : T('u_hs', {n});
+}
+const fdur = m => (m % 1440 === 0) ? unitCount(m / 1440, 'day') : unitCount(Math.round(m / 60), 'h');
+const typeName = ty => T(ty === 'reefer' ? 'reefer' : 'dry');
+function grpLabel(unit, g, openEnded){
+  if(unit === 'hour') return g.from === g.to ? T('lab_h1', {a:g.from}) : T('lab_h', {a:g.from, b:g.to});
+  if(unit === 'block24') return g.from === g.to ? T('lab_b1', {a:g.from}) : T('lab_b', {a:g.from, b:g.to});
+  if(openEnded) return T('lab_dplus', {a:g.from});
+  return g.from === g.to ? T('lab_d1', {a:g.from}) : T('lab_d', {a:g.from, b:g.to});
+}
+function tariffLines(y, size, type){
+  const tf = y.tariff, out = [];
+  if(tf.unit === 'hour') out.push(T('b_hour', {r:inr(tf.rate[size]), size}));
+  else if(tf.unit === 'block24') out.push(T('b_block', {r:inr(tf.rate[size]), size}));
+  else { out.push(T('b_cal', {size})); tf.slabs.forEach(sl => { const lab = grpLabel('calendar', {from:sl.from, to:sl.to}, sl.to == null); out.push(sl.rate[size] === 0 ? T('slab_free', {label:lab}) : T('slab_r', {label:lab, r:inr(sl.rate[size])})); }); }
+  if(tf.min > 1) out.push(T('min_l', {v:unitCount(tf.min, tf.unit)}));
+  if(type === 'reefer' && tf.power) out.push(T('power_l', {r:inr(tf.power.rate[size]), h:tf.power.hours}));
+  return out;
+}
+function ruleLines(y){
+  const tf = y.tariff;
+  return [T('max_l', {v:unitCount(tf.max.n, tf.max.u === 'day' ? 'day' : 'h')}),
+    y.open[0] === 0 && y.open[1] === 24 ? T('hours24') : T('hours_l', {a:pad(y.open[0]), b:pad(y.open[1])}),
+    T('window_l', {e:y.early, l:y.late}), T('start_l'), T('cancel_l')];
+}
+function calcRows(b, labelTotal){
+  const rows = [[T('c_dur', {d:fdur(b.mins)}), ''], [T('c_units', {v:unitCount(b.units, b.unit)}), '']];
+  if(b.minApplied) rows.push([T('c_min', {v:unitCount(b.billed, b.unit)}), '']);
+  b.groups.forEach((g, i) => { const lab = grpLabel(b.unit, g, false); rows.push([g.r === 0 ? T('slab_free', {label:lab}) : lab + ': ' + g.n + ' × ' + inr(g.r), inr(g.amt)]); });
+  if(b.power) rows.push([T('c_power', {n:b.power.blocks, r:inr(b.power.r), h:b.power.h}), inr(b.power.amt)]);
+  return '<div class="calc">' + rows.map(r => '<div class="row"><span>' + esc(r[0]) + '</span><span>' + r[1] + '</span></div>').join('') + '<div class="row tot"><span>' + esc(labelTotal || T('c_total')) + '</span><span>' + inr(b.total) + '</span></div></div>';
+}
+
+/* =========================================================
+   State, seed data and the event log
+   ========================================================= */
+const CODECH = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode(){ let c; do { c = 'YF-'; for(let i = 0; i < 6; i++) c += CODECH[Math.floor(Math.random() * CODECH.length)]; } while(S && S.bookings.some(b => b.code === c)); return c; }
+function log(type, data, bk){ const e = {t:S.now, type, data:data || {}}; S.events.push(e); if(bk) bk.events.push(e); }
+function mkBooking(o){
+  const y = Y(o.yard);
+  const b = Object.assign({id:'B-' + (++S.seq), status:'booked', events:[], storageStart:null, storageEnd:null, enteredAt:null, owner:null, demo:false, payment:null}, o);
+  b.est = bill(y, b.size, b.type, b.appt, b.appt + b.dur);
+  b.billing = {status:'estimate', amount:null, calc:null};
+  return b;
+}
+function seed(){
+  S = {
+    role:'book', lang:'en', now:0, server:true, gateAck:true, gateYard:'KCY', seq:1000,
+    step:'search', f:{who:'driver', day:0, hour:11, durVal:3, durUnit:'day', size:20, type:'dry', sort:'price', yard:null,
+      cont:makeCont('TGHU', '312581'), truck:'MH 46 CK 3307', dname:'Ramesh Yadav', dmob:'9876543210', oname:'Anita Shah', omob:'9820012345', agree:false},
+    err:{}, flash:'', mine:[], openId:null, confirmCancel:null, copyMsg:'',
+    bookings:[], events:[], exceptions:[],
+    g:{screen:'scan', bk:null, code:'', checks:[], truckOk:null, contOk:null, gate:'idle', cmd:0, attempts:0, reason:null, reviewSent:false, hint:false, fault:false},
+    dash:{yard:'KCY', q:'', sel:null, pay:null}
+  };
+  const add = o => { const b = mkBooking(Object.assign({demo:true}, o)); S.bookings.push(b); return b; };
+  const at = (b, type, t, data) => { const e = {t, type, data:data || {}}; b.events.push(e); S.events.push(e); };
+  let b;
+  b = add({code:'YF-K7Q4M2', yard:'KCY', size:20, type:'dry', appt:0, dur:2*1440, truck:'MH 46 BU 2193', cont:makeCont('MSCU', '458210'), driver:{name:'Sunil Patil', mob:'9867012345'}});
+  at(b, 'booking_confirmed', -1500, {code:b.code, appointment:fdt(b.appt)});
+  b = add({code:'YF-H3RW8P', yard:'KCY', size:20, type:'dry', appt:240, dur:1440, truck:'MH 04 KT 7710', cont:makeCont('CMAU', '771034'), driver:{name:'Imran Shaikh', mob:'9930011223'}});
+  at(b, 'booking_confirmed', -300, {code:b.code, appointment:fdt(b.appt)});
+  b = add({code:'YF-T9LB2C', yard:'TCP', size:40, type:'dry', appt:0, dur:3*1440, truck:'MH 43 BX 6120', cont:makeCont('HLXU', '290415'), driver:{name:'Prakash Jadhav', mob:'9773344556'}});
+  at(b, 'booking_confirmed', -900, {code:b.code, appointment:fdt(b.appt)});
+  b = add({code:'YF-N8DS5V', yard:'KCY', size:40, type:'dry', appt:-1560, dur:3*1440, truck:'MH 43 CE 5512', cont:makeCont('MAEU', '603917'), driver:{name:'Vijay More', mob:'9821987654'}, status:'in_storage', enteredAt:-1550, storageStart:-1530});
+  at(b, 'booking_confirmed', -3000, {code:b.code}); at(b, 'gate_open_confirmed', -1550, {code:b.code}); at(b, 'storage_started', -1530, {code:b.code});
+  b = add({code:'YF-R2PX7G', yard:'PRH', size:20, type:'reefer', appt:-560, dur:24*60, truck:'GJ 15 AV 3308', cont:makeCont('SEGU', '918264'), driver:{name:'Harish Mehta', mob:'9909055443'}, status:'in_storage', enteredAt:-545, storageStart:-530});
+  at(b, 'booking_confirmed', -2000, {code:b.code}); at(b, 'gate_open_confirmed', -545, {code:b.code}); at(b, 'storage_started', -530, {code:b.code});
+  b = add({code:'YF-W5MC3J', yard:'KCY', size:20, type:'dry', appt:-4380, dur:2*1440, truck:'MH 06 BG 4471', cont:makeCont('TCLU', '520743'), driver:{name:'Ganesh Kale', mob:'9819023456'}, status:'exited', enteredAt:-4370, storageStart:-4350, storageEnd:-1290});
+  at(b, 'storage_started', -4350, {code:b.code}); finalize(b, false);
+  b = add({code:'YF-B6ZQ9E', yard:'KCY', size:20, type:'dry', appt:-5900, dur:1440, truck:'MH 46 AF 0921', cont:makeCont('OOLU', '384122'), driver:{name:'Deepak Rane', mob:'9867543210'}, status:'exited', enteredAt:-5890, storageStart:-5870, storageEnd:-4400});
+  at(b, 'storage_started', -5870, {code:b.code}); finalize(b, false);
+  b.billing.status = 'paid'; b.payment = {mode:'UPI', ref:'Demo ref 4471', at:-4380, by:'Yard staff'}; at(b, 'payment_recorded', -4380, {code:b.code, mode:'UPI'});
+}
+function finalize(b, live){
+  const y = Y(b.yard);
+  const c = bill(y, b.size, b.type, b.storageStart, b.storageEnd);
+  b.billing = {status:'outstanding', amount:c.total, calc:c};
+  const ev = (type, data) => { const e = {t:b.storageEnd, type, data}; b.events.push(e); S.events.push(e); };
+  ev('storage_ended', {code:b.code});
+  ev('bill_calculated', {code:b.code, amount:inr(c.total), basis:y.tariff.unit});
+  if(b.storageEnd - b.storageStart > maxMins(y.tariff)) addException(b.yard, b, 'Stayed longer than the yard maximum (' + unitCount(y.tariff.max.n, y.tariff.max.u === 'day' ? 'day' : 'h') + '). Any overstay charge follows the yard policy; none is modelled here.');
+}
+function addException(yard, b, text){ S.exceptions.push({id:'X-' + (++S.seq), t:S.now, yard, code:b ? b.code : '—', text, reviewed:false}); log('exception_raised', {yard, code:b ? b.code : '—', issue:text}, b); }
+
+/* =========================================================
+   Search and suitability
+   ========================================================= */
+function req(){ const f = S.f; const appt = dayStart(dayIdx(S.now) + f.day) + f.hour * 60; const dur = Math.round(+f.durVal) * (f.durUnit === 'day' ? 1440 : 60); return {appt, dur, size:f.size, type:f.type}; }
+const active = b => b.status !== 'cancelled' && b.status !== 'exited';
+function slotsUsed(y, appt){ const h = dayIdx(appt) * 24 + Math.floor(((appt + DAY_OFFSET) % 1440) / 60); return S.bookings.filter(b => b.yard === y.id && b.status !== 'cancelled' && dayIdx(b.appt) * 24 + Math.floor(((b.appt + DAY_OFFSET) % 1440) / 60) === h).length; }
+function teuUsed(y){ return y.baseTEU + S.bookings.filter(b => b.yard === y.id && active(b)).reduce((a, b) => a + teu(b.size), 0); }
+function evaluate(y, r){
+  const reasons = [], hr = Math.floor(((r.appt + DAY_OFFSET) % 1440) / 60);
+  if(!y.sizes.includes(r.size)) reasons.push(T('r_size', {size:r.size}));
+  if(!y.types.includes(r.type)) reasons.push(T('r_type'));
+  if(r.dur > maxMins(y.tariff)) reasons.push(T('r_max', {max:unitCount(y.tariff.max.n, y.tariff.max.u === 'day' ? 'day' : 'h')}));
+  if(hr < y.open[0] || hr >= y.open[1]) reasons.push(T('r_hours', {time:hhmm(r.appt), open:T('hours_l', {a:pad(y.open[0]), b:pad(y.open[1])})}));
+  const used = slotsUsed(y, r.appt), free = y.capTEU - teuUsed(y);
+  if(used >= y.capHour) reasons.push(T('r_slots', {time:hhmm(r.appt)}));
+  if(free < teu(r.size)) reasons.push(T('r_space'));
+  const est = (y.sizes.includes(r.size)) ? bill(y, r.size, r.type, r.appt, r.appt + r.dur) : null;
+  return {y, ok:reasons.length === 0, reasons, est, slotsFree:Math.max(0, y.capHour - used), teuFree:Math.max(0, free)};
+}
+
+/* =========================================================
+   Driver / booking-owner screens
+   ========================================================= */
+function appbar(sub, showLang){
+  return '<div class="appbar"><span class="brand">YardFlow</span><span class="where">' + esc(sub) + '</span>' +
+    (showLang ? '<button class="langbtn" id="lang" lang="' + (S.lang === 'en' ? 'hi' : 'en') + '">' + T('lang_btn') + '</button>' : '') +
+    '<span class="conn' + (S.server ? '' : ' down') + '"><span class="dot"></span>' + T(S.server ? 'online' : 'offline') + '</span></div>';
+}
+const shell = (sub, body, foot) => '<div class="phone"><div class="screen" id="screen" lang="' + S.lang + '">' + appbar(sub, true) + '<div class="body">' + body + '</div>' + (foot ? '<div class="foot">' + foot + '</div>' : '') + '</div></div>';
+const B = (id, label, cls, extra) => '<button class="btn ' + (cls || '') + '" id="' + id + '"' + (extra || '') + '>' + label + '</button>';
+const seg = (field, opts) => '<div class="seg" role="group">' + opts.map(o => '<button type="button" data-f="' + field + '" data-v="' + o[0] + '" aria-pressed="' + (String(S.f[field]) === String(o[0])) + '">' + o[1] + '</button>').join('') + '</div>';
+const errP = k => S.err[k] ? '<p class="err" role="alert">' + esc(T(S.err[k].k, S.err[k].v)) + '</p>' : '';
+function field(id, labelKey, hintKey, mono, extra){
+  return '<label class="field" for="f-' + id + '"><span class="lab">' + T(labelKey) + '</span>' + (hintKey ? '<span class="hint">' + T(hintKey) + '</span>' : '') +
+    '<input class="in' + (mono ? ' mono' : '') + '" id="f-' + id + '" data-in="' + id + '" value="' + esc(S.f[id]) + '" autocomplete="off"' + (S.err[id] ? ' aria-invalid="true"' : '') + (extra || '') + '>' + errP(id) + '</label>';
+}
+function vSearch(){
+  const f = S.f, d0 = dayIdx(S.now);
+  const days = [0,1,2].map(i => [i, (i === 0 ? T('today') : i === 1 ? T('tomorrow') : fday(dayStart(d0 + 2), S.lang).split(' ')[0]) + '<small>' + esc(fday(dayStart(d0 + i), S.lang)) + '</small>']);
+  let opts = ''; for(let h = 0; h < 24; h++) opts += '<option value="' + h + '"' + (h === f.hour ? ' selected' : '') + '>' + pad(h) + ':00</option>';
+  return shell(T('home_t'),
+    '<div><h2 class="t">' + T('home_t') + '</h2><p class="sub">' + T('home_s') + '</p></div>' +
+    '<div class="field"><span class="lab">' + T('who_l') + '</span>' + seg('who', [['driver', T('who_driver')], ['other', T('who_other')]]) + '</div>' +
+    '<div class="field"><span class="lab">' + T('date_l') + '</span>' + seg('day', days) + '</div>' +
+    '<label class="field" for="f-hour"><span class="lab">' + T('time_l') + '</span><select class="in" id="f-hour" data-sel="hour">' + opts + '</select>' + errP('hour') + '</label>' +
+    '<div class="field"><span class="lab">' + T('dur_l') + '</span><div class="dur"><button type="button" id="dur-minus" aria-label="−">−</button><input class="in" id="f-durVal" data-in="durVal" inputmode="numeric" value="' + esc(f.durVal) + '"' + (S.err.durVal ? ' aria-invalid="true"' : '') + '><button type="button" id="dur-plus" aria-label="+">+</button></div>' +
+      seg('durUnit', [['hour', T('hours')], ['day', T('days')]]) + errP('durVal') + '</div>' +
+    '<div class="field"><span class="lab">' + T('size_l') + '</span>' + seg('size', [[20, T('ft', {n:20})], [40, T('ft', {n:40})]]) + '</div>' +
+    '<div class="field"><span class="lab">' + T('type_l') + '</span>' + seg('type', [['dry', T('dry')], ['reefer', T('reefer')]]) + '</div>' +
+    (S.flash ? '<div class="note blue" role="status">' + esc(T(S.flash)) + '</div>' : ''),
+    B('do-search', T('search_btn'), 'primary') + '<button class="linkbtn" id="to-mine">' + T('my_b', {n:S.mine.length}) + '</button>');
+}
+function validateSearch(){
+  const f = S.f, e = {}; const v = Math.round(+f.durVal);
+  if(!(v >= 1)) e.durVal = {k:'e_dur', v:{u:T(f.durUnit === 'day' ? 'u_du' : 'u_hu')}};
+  else if((f.durUnit === 'day' ? v : v / 24) > 90) e.durVal = {k:'e_bigdur'};
+  if(req().appt < S.now - 59) e.hour = {k:'e_past'};
+  S.err = e; return Object.keys(e).length === 0;
+}
+function yardCard(ev, r){
+  const y = ev.y, n = S.lang;
+  if(!ev.ok){
+    return '<div class="card dim"><div class="yhead"><div><div class="yname">' + esc(y.name[n]) + '</div><div class="yloc">' + esc(y.loc[n]) + '</div></div><span class="pill bad">' + T('notfit') + '</span></div>' +
+      '<div><b>' + T('why_not') + '</b><ul class="facts why">' + ev.reasons.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div></div>';
+  }
+  const b = ev.est;
+  return '<div class="card"><div class="yhead"><div><div class="yname">' + esc(y.name[n]) + '</div><div class="yloc">' + esc(y.loc[n]) + '</div></div><span class="pill ok">' + T('fits') + '</span></div>' +
+    '<ul class="facts"><li>' + T('slots_l', {n:ev.slotsFree, m:y.capHour, time:hhmm(r.appt)}) + '</li><li>' + T('space_l', {n:ev.teuFree, m:y.capTEU}) + '</li>' +
+    '<li>' + T('takes_l', {v:y.sizes.map(s => T('ft', {n:s})).join(', ') + ' · ' + y.types.map(typeName).join(', ')}) + '</li>' +
+    tariffLines(y, r.size, r.type).map(x => '<li>' + esc(x) + '</li>').join('') +
+    '<li>' + esc(ruleLines(y)[0]) + '</li><li>' + esc(ruleLines(y)[1]) + '</li></ul>' +
+    (b.minApplied ? '<div class="note small">' + esc(T('min_note', {v:unitCount(b.billed, b.unit)})) + '</div>' : '') +
+    '<div class="est"><span>' + T('est_for', {d:fdur(r.dur)}) + '</span><b>' + inr(b.total) + '</b></div>' +
+    '<button class="btn primary" data-yard="' + y.id + '">' + T('choose') + '</button></div>';
+}
+function vResults(){
+  const r = req(); const evs = YARDS.map(y => evaluate(y, r));
+  const ok = evs.filter(e => e.ok), no = evs.filter(e => !e.ok);
+  ok.sort((a, b) => S.f.sort === 'price' ? a.est.total - b.est.total : b.teuFree - a.teuFree);
+  const when = fday(r.appt, S.lang) + ', ' + hhmm(r.appt);
+  return shell(T('res_t'),
+    '<div><h2 class="t">' + T('res_t') + '</h2><p class="sub">' + esc(T('res_sum', {size:r.size, type:typeName(r.type), when, dur:fdur(r.dur)})) + ' · <button class="linkbtn" id="to-search">' + T('change') + '</button></p></div>' +
+    '<div class="note">' + T('demo_note') + '</div>' +
+    '<div class="field"><span class="lab">' + T('sort_l') + '</span>' + seg('sort', [['price', T('sort_price')], ['space', T('sort_space')]]) + '</div>' +
+    '<h3 class="s">' + T('n_fit', {n:ok.length}) + '</h3>' + (ok.length ? ok.map(e => yardCard(e, r)).join('') : '<p class="empty" role="status">' + T('empty_res') + '</p>') +
+    (no.length ? '<h3 class="s">' + T('n_notfit', {n:no.length}) + '</h3>' + no.map(e => yardCard(e, r)).join('') : ''),
+    B('to-search2', T('back'), ''));
+}
+function vDetails(){
+  const y = Y(S.f.yard), r = req(), other = S.f.who === 'other';
+  return shell(T('det_t'),
+    '<div><h2 class="t">' + T('det_t') + '</h2><p class="sub">' + esc(y.name[S.lang]) + ' · ' + esc(fday(r.appt, S.lang)) + ', ' + hhmm(r.appt) + '</p></div>' +
+    field('cont', 'cont_l', 'cont_h', true) + field('truck', 'truck_l', 'truck_h', true) +
+    (other ? '<div class="note blue">' + T('owner_h') + '</div>' + field('oname', 'yname_l', null, false) + field('omob', 'ymob_l', 'mob_h', true, ' inputmode="numeric"') : '') +
+    field('dname', other ? 'dname_l' : 'yname_l', null, false) + field('dmob', other ? 'dmob_l' : 'ymob_l', 'mob_h', true, ' inputmode="numeric"'),
+    B('to-review', T('next_review'), 'primary') + '<button class="linkbtn" id="to-results">' + T('back') + '</button>');
+}
+function validateDetails(){
+  const f = S.f, e = {};
+  const c = contCheck(f.cont); if(!c.ok) e.cont = {k:c.k}; else f.cont = c.v;
+  const t = truckCheck(f.truck); if(!t.ok) e.truck = {k:t.k}; else f.truck = t.v;
+  if(!String(f.dname).trim()) e.dname = {k:'e_name'};
+  if(!mobCheck(f.dmob)) e.dmob = {k:'e_mob'};
+  if(f.who === 'other'){ if(!String(f.oname).trim()) e.oname = {k:'e_oname'}; if(!mobCheck(f.omob)) e.omob = {k:'e_omob'}; }
+  S.err = e; return Object.keys(e).length === 0;
+}
+function vReview(){
+  const y = Y(S.f.yard), r = req(), b = bill(y, r.size, r.type, r.appt, r.appt + r.dur), n = S.lang, f = S.f;
+  return shell(T('rev_t'),
+    '<div><h2 class="t">' + T('rev_t') + '</h2><p class="sub">' + esc(y.name[n]) + ' · ' + esc(y.loc[n]) + '</p></div>' +
+    '<dl class="kv"><dt>' + T('appt_l') + '</dt><dd>' + esc(fday(r.appt, n)) + ', ' + hhmm(r.appt) + '</dd><dt>' + T('stay_l') + '</dt><dd>' + esc(fdur(r.dur)) + '</dd>' +
+    '<dt>' + T('cont_s') + '</dt><dd class="mono">' + esc(f.cont) + ' · ' + r.size + ' ft ' + esc(typeName(r.type)) + '</dd><dt>' + T('truck_s') + '</dt><dd class="mono">' + esc(f.truck) + '</dd>' +
+    '<dt>' + T('driver_s') + '</dt><dd>' + esc(f.dname) + ' · <span class="mono">' + esc(f.dmob) + '</span></dd>' + (f.who === 'other' ? '<dt>' + T('owner_s') + '</dt><dd>' + esc(f.oname) + ' · <span class="mono">' + esc(f.omob) + '</span></dd>' : '') + '</dl>' +
+    '<h3 class="s">' + T('basis_t') + '</h3><ul class="facts">' + tariffLines(y, r.size, r.type).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
+    '<h3 class="s">' + T('calc_t') + '</h3>' + calcRows(b) +
+    '<div class="note">' + T('final_note') + '</div>' +
+    '<h3 class="s">' + T('rules_t') + '</h3><ul class="facts">' + ruleLines(y).map(x => '<li>' + esc(x) + '</li>').join('') + '<li>' + T('no_fees') + '</li></ul>' +
+    '<label class="check" for="f-agree"><input type="checkbox" id="f-agree" data-chk="agree"' + (f.agree ? ' checked' : '') + '>' + T('agree') + '</label>' + errP('agree') + errP('full'),
+    B('do-book', T('confirm') + ' · ' + inr(b.total), 'primary') + '<button class="linkbtn" id="to-details">' + T('back') + '</button>');
+}
+function shareText(b, l){
+  const y = Y(b.yard);
+  const basis = tariffLinesL(l, y, b.size, b.type)[0];
+  return TL(l, 'share_txt', {code:b.code, yard:y.name[l], loc:y.loc[l], when:fday(b.appt, l) + ', ' + hhmm(b.appt), truck:b.truck, cont:b.cont, size:b.size, type:TL(l, b.type === 'reefer' ? 'reefer' : 'dry'), dur:withLang(l, () => fdur(b.dur)), est:inr(b.est.total), basis});
+}
+function withLang(l, fn){ const k = S.lang; S.lang = l; try { return fn(); } finally { S.lang = k; } }
+const tariffLinesL = (l, y, s, t) => withLang(l, () => tariffLines(y, s, t));
+function statusPill(b){
+  const map = {booked:['blue','st_booked'], entered:['sys','st_entered'], in_storage:['warn','st_in_storage'], exited:['ok','st_exited'], cancelled:['neutral','st_cancelled']};
+  const m = map[b.status]; return '<span class="pill ' + m[0] + '">' + T(m[1]) + '</span>';
+}
+function billPill(b){ const m = {estimate:['neutral','bill_estimate'], outstanding:['bad','bill_outstanding'], paid:['ok','bill_paid']}[b.billing.status]; return '<span class="pill ' + m[0] + '">' + T(m[1]) + '</span>'; }
+function vDone(){
+  const b = S.bookings.find(x => x.id === S.openId), y = Y(b.yard), n = S.lang, txt = shareText(b, n);
+  const wa = 'https://wa.me/91' + b.driver.mob + '?text=' + encodeURIComponent(txt);
+  return shell(T('done_t'),
+    '<div class="band ok">' + IC.ok + '<div><div class="bt">' + T('done_t') + '</div><div class="bs">' + esc(y.name[n]) + ' · ' + esc(fday(b.appt, n)) + ', ' + hhmm(b.appt) + '</div></div></div>' +
+    '<div class="pass"><span class="hint">' + T('code_l') + '</span><div class="code" id="bk-code">' + esc(b.code) + '</div><span class="hint">' + T('code_h') + '</span>' +
+      '<canvas id="qr" width="29" height="29" aria-label="' + esc(T('qr_ph')) + '"></canvas><span class="hint">' + T('qr_ph') + '</span></div>' +
+    '<dl class="kv"><dt>' + T('yard_s') + '</dt><dd>' + esc(y.name[n]) + ', ' + esc(y.loc[n]) + '</dd><dt>' + T('appt_l') + '</dt><dd>' + esc(fday(b.appt, n)) + ', ' + hhmm(b.appt) + '</dd>' +
+      '<dt>' + T('cont_s') + '</dt><dd class="mono">' + esc(b.cont) + '</dd><dt>' + T('truck_s') + '</dt><dd class="mono">' + esc(b.truck) + '</dd><dt>' + T('driver_s') + '</dt><dd>' + esc(b.driver.name) + '</dd>' +
+      '<dt>' + T('stay_l') + '</dt><dd>' + esc(fdur(b.dur)) + '</dd><dt>' + T('estch_s') + '</dt><dd>' + inr(b.est.total) + '</dd><dt>' + T('tariff_s') + '</dt><dd>' + esc(tariffLines(y, b.size, b.type)[0]) + '</dd>' +
+      '<dt>' + T('status_s') + '</dt><dd>' + statusPill(b) + ' ' + billPill(b) + '</dd></dl>' +
+    '<h3 class="s">' + T('share_t') + '</h3><textarea class="share" id="share-text" readonly>' + esc(txt) + '</textarea>' +
+    (S.copyMsg ? '<p class="' + (S.copyMsg === 'copied' ? 'hint' : 'err') + '" role="status">' + T(S.copyMsg) + '</p>' : '') +
+    '<button class="btn" id="copy-share">' + T('copy') + '</button>' +
+    '<a class="btn go" href="' + esc(wa) + '" target="_blank" rel="noopener" id="wa-link">' + T('wa') + '</a><p class="hint">' + T('wa_note') + '</p>',
+    B('to-mine2', T('mb_t'), '') + '<button class="linkbtn" id="new-search">' + T('new_search') + '</button>');
+}
+function vMine(){
+  const list = S.mine.map(id => S.bookings.find(b => b.id === id)).filter(Boolean).reverse(), n = S.lang;
+  const cards = list.map(b => { const y = Y(b.yard);
+    return '<div class="card"><div class="yhead"><div><div class="mono" style="font-size:18px">' + esc(b.code) + '</div><div class="yloc">' + esc(y.name[n]) + ' · ' + esc(fday(b.appt, n)) + ', ' + hhmm(b.appt) + '</div></div>' + statusPill(b) + '</div>' +
+      '<div class="small mono">' + esc(b.truck) + ' · ' + esc(b.cont) + '</div><div>' + billPill(b) + ' <span class="small">' + (b.billing.status === 'estimate' ? inr(b.est.total) : inr(b.billing.amount)) + '</span></div>' +
+      (b.status !== 'cancelled' ? '<button class="btn sm" data-open="' + b.id + '">' + T('show_pass') + '</button>' : '') +
+      (b.status === 'booked' ? (S.confirmCancel === b.id ? '<div class="note">' + T('cancel_q') + '</div><div class="yn"><button class="no" data-cancel-yes="' + b.id + '">' + T('cancel_yes') + '</button><button data-cancel-no="1">' + T('cancel_no') + '</button></div>' : '<button class="btn sm danger" data-cancel="' + b.id + '">' + T('cancel_b') + '</button>') : '') + '</div>'; }).join('');
+  return shell(T('mb_t'),
+    '<h2 class="t">' + T('mb_t') + '</h2>' + (S.flash ? '<div class="note blue" role="status">' + esc(T(S.flash)) + '</div>' : '') + (cards || '<p class="empty" role="status">' + T('mb_empty') + '</p>'),
+    B('new-search2', T('new_search'), 'primary'));
+}
+
+/* =========================================================
+   Security gate
+   ========================================================= */
+const IC = {
+  ok:'<svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="3"/><path d="M12 20.5l5.5 5.5L28.5 14" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn:'<svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 4L37 34H3z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M20 15v9" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><circle cx="20" cy="29" r="2.2" fill="currentColor"/></svg>',
+  bad:'<svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="currentColor" stroke-width="3"/><path d="M13 13l14 14M27 13L13 27" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg>',
+  sys:'<svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M6 15a20 20 0 0 1 28 0M11 21a12 12 0 0 1 18 0M16 27a5 5 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M7 7l26 26" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+  wait:'<svg class="ic" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 5h18M11 35h18M13 5c0 9 14 10 14 15S13 26 13 35M27 5c0 9-14 10-14 15s14 6 14 15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>'
+};
+const band = (cls, ic, t, s) => '<div class="band ' + cls + '">' + IC[ic] + '<div><div class="bt">' + t + '</div>' + (s ? '<div class="bs">' + s + '</div>' : '') + '</div></div>';
+function gshell(body, foot){ const y = Y(S.gateYard); return shell(T('gate_at', {yard:y.name[S.lang]}), body, foot); }
+function statusPair(){
+  const g = S.g, b = g.bk;
+  const gm = {idle:['neutral'], sent:['sys'], confirmed:['ok'], unconfirmed:['warn'], fault:['bad']}[g.gate][0];
+  return '<div class="status2"><div class="scard"><span class="lab">' + T('lab_bk') + '</span>' + (b ? statusPill(b) : '—') + '</div><div class="scard"><span class="lab">' + T('lab_gate') + '</span><span class="pill ' + gm + '">' + T('g_' + g.gate) + '</span></div></div>';
+}
+function checklist(){
+  return '<ul class="checklist">' + S.g.checks.map(c => '<li><span class="mk ' + (c.ok === true ? 'y' : c.ok === false ? 'n' : 'q') + '">' + (c.ok === true ? '✓' : c.ok === false ? '✕' : '·') + '</span><span>' + T(c.k) + '</span></li>').join('') + '</ul>';
+}
+function vGate(){
+  const g = S.g, n = S.lang;
+  if(g.screen === 'checking') return gshell('<div class="spinner" role="progressbar" aria-label="' + T('checking') + '"></div><p style="text-align:center;font-size:20px;font-weight:600;margin:0">' + T('checking') + '</p>', '');
+  if(g.screen === 'down') return gshell(band('sys', 'sys', T('down_t'), T('down_s')) + '<p class="err" style="font-size:17px">' + T('closed') + '</p><div class="note">' + T('down_say') + '</div>', B('g-retry', T('retry'), 'primary') + B('g-next', T('next'), ''));
+  if(g.screen === 'refused'){
+    const canReview = g.reason && (g.reason.k === 'f_early' || g.reason.k === 'f_late' || g.reason.k === 'f_truck' || g.reason.k === 'f_cont');
+    return gshell(band('bad', 'bad', T('refused_t'), esc(T(g.reason.k, g.reason.v))) + '<p class="err" style="font-size:17px">' + T('closed') + '</p>' + checklist() + (g.bk ? statusPair() : '') +
+      (g.reviewSent ? '<div class="note blue" role="status">' + T('review_sent') + '</div>' : ''),
+      (canReview && !g.reviewSent ? B('g-review', T('review_btn'), '') : '') + B('g-next', T('next'), 'primary'));
+  }
+  if(g.screen === 'vehicle'){
+    const b = g.bk; const yn = (k, v) => '<div class="yn"><button class="yes" data-yn="' + k + '" data-v="1" aria-pressed="' + (v === true) + '">' + T('yes') + '</button><button class="no" data-yn="' + k + '" data-v="0" aria-pressed="' + (v === false) + '">' + T('no') + '</button></div>';
+    return gshell(band('ok', 'ok', T('vc_t'), T('vc_s')) + checklist() +
+      '<div class="ask"><p>' + T('vc_truck') + '</p><div class="bignum">' + esc(b.truck) + '</div>' + yn('truck', g.truckOk) + '</div>' +
+      '<div class="ask"><p>' + T('vc_cont') + '</p><div class="bignum">' + esc(b.cont) + '</div><span class="hint">' + b.size + ' ft · ' + esc(typeName(b.type)) + '</span>' + yn('cont', g.contOk) + '</div>',
+      B('g-open', T('open_gate'), 'go', (g.truckOk && g.contOk) ? '' : ' disabled') + B('g-next', T('next'), ''));
+  }
+  if(g.screen === 'gate'){
+    const b = g.bk; let top, foot;
+    if(g.gate === 'sent'){ top = band('sys', 'wait', T('g_sent_t'), T('g_sent_s')); foot = B('g-wait', T('wait'), '', ' disabled'); }
+    else if(g.gate === 'confirmed'){ top = band('ok', 'ok', T('g_ok_t'), T('g_ok_s')); foot = B('g-next', T('next'), 'primary'); }
+    else if(g.gate === 'unconfirmed'){ top = band('warn', 'warn', T('g_no_t'), T('g_no_s')); foot = B('g-fault', T('broken'), '') + B('g-retrygate', T('retry'), 'primary'); }
+    else { top = band('bad', 'bad', T('g_fault'), T('g_fault_s')); foot = B('g-next', T('next'), 'primary'); }
+    return gshell(top + '<div class="ask"><div class="bignum">' + esc(b.truck) + '</div><div class="mono">' + esc(b.cont) + '</div></div>' + statusPair(), foot);
+  }
+  const chips = S.bookings.filter(b => b.status !== 'exited').slice().sort((a, b) => (S.mine.includes(b.id) ? 1 : 0) - (S.mine.includes(a.id) ? 1 : 0)).slice(0, 7)
+    .map(b => '<button class="chip' + (S.mine.includes(b.id) ? ' mine' : '') + '" data-scan="' + b.code + '">' + esc(b.code) + ' · ' + b.yard + '</button>').join('');
+  return gshell('<h2 class="t">' + T('scan_t') + '</h2><p class="sub">' + T('scan_s') + '</p>' +
+    (S.server ? '' : '<div class="note"><b>' + T('down_s') + '</b></div>') +
+    '<div class="viewfinder"><div class="frame"></div><div class="vlabel">' + T('vf') + '</div></div>' +
+    (g.hint ? '<div class="note" role="status">' + T('hint') + '</div>' : '') +
+    '<p class="hint" style="margin:0">' + T('demo') + '</p><div class="chips">' + chips + '<button class="chip" data-scan="XX-NOTOURS">' + T('c_invalid') + '</button><button class="chip" data-scan="UNREADABLE">' + T('c_unread') + '</button></div>' +
+    '<label class="field" for="g-code"><span class="lab">' + T('code_in') + '</span><input class="in mono" id="g-code" data-gin="code" value="' + esc(g.code) + '" placeholder="YF-XXXXXX" autocomplete="off">' + (g.codeErr ? '<p class="err">' + T('e_code') + '</p>' : '') + '</label>',
+    B('g-check', T('check_btn'), 'primary'));
+}
+function gateVerify(code){
+  const g = S.g; g.hint = false; g.codeErr = false; g.reviewSent = false; g.truckOk = null; g.contOk = null; g.gate = 'idle'; g.attempts = 0; g.fault = false;
+  g.screen = 'checking'; render();
+  setTimeout(() => {
+    if(!S.server){ g.screen = 'down'; log('gate_check_unavailable', {code, yard:S.gateYard}); render(); return; }
+    const norm = String(code).toUpperCase().replace(/\s/g, '');
+    const b = S.bookings.find(x => x.code === norm), y = Y(S.gateYard);
+    g.bk = b || null; g.lastCode = norm;
+    const checks = [{k:'chk_exists', ok:!!b}], fail = r => { g.reason = r; g.screen = 'refused'; g.checks = checks; log('gate_refused', {code:norm, yard:y.id, reason:TL('en', r.k, r.v)}, b); render(); };
+    if(!/^YF-/.test(norm)) { checks[0].ok = false; return fail({k:'f_invalid'}); }
+    if(!b) return fail({k:'f_notfound'});
+    checks.push({k:'chk_yard', ok:b.yard === y.id}); if(b.yard !== y.id) return fail({k:'f_yard', v:{yard:Y(b.yard).name[S.lang]}});
+    const usable = b.status === 'booked'; checks.push({k:'chk_usable', ok:usable});
+    if(b.status === 'cancelled') return fail({k:'f_cancel'});
+    if(!usable) return fail({k:'f_used', v:{at:b.enteredAt != null ? fdt(b.enteredAt, S.lang) : '—'}});
+    const from = b.appt - y.early, to = b.appt + y.late, inWin = S.now >= from && S.now <= to; checks.push({k:'chk_window', ok:inWin});
+    if(S.now < from) return fail({k:'f_early', v:{appt:fdt(b.appt, S.lang), from:hhmm(from)}});
+    if(S.now > to) return fail({k:'f_late', v:{to:fdt(to, S.lang)}});
+    checks.push({k:'chk_truck', ok:null}, {k:'chk_cont', ok:null});
+    g.checks = checks; g.screen = 'vehicle'; log('gate_booking_valid', {code:norm, yard:y.id}, b); render();
+  }, 600);
+}
+function sendGate(){
+  const g = S.g, b = g.bk; g.attempts++; const cmd = ++g.cmd; g.gate = 'sent'; g.screen = 'gate';
+  log('gate_command_sent', {code:b.code, attempt:g.attempts, simulated:true}, b); render();
+  setTimeout(() => {
+    if(cmd !== g.cmd) return;
+    if(S.gateAck){ g.gate = 'confirmed'; if(b.status === 'booked'){ b.status = 'entered'; b.enteredAt = S.now; log('gate_open_confirmed', {code:b.code}, b); log('truck_entered', {code:b.code, truck:b.truck}, b); } }
+    else { g.gate = 'unconfirmed'; log('gate_no_reply', {code:b.code, attempt:g.attempts}, b); }
+    render();
+  }, 1300);
+}
+
+/* =========================================================
+   Yard dashboard (English: yard office)
+   ========================================================= */
+const ST_EN = {booked:'Booked', entered:'Truck inside, not placed', in_storage:'In storage', exited:'Collected', cancelled:'Cancelled'};
+function dashStatus(b){ const m = {booked:'blue', entered:'sys', in_storage:'warn', exited:'ok', cancelled:'neutral'}; return '<span class="pill ' + m[b.status] + '">' + ST_EN[b.status] + '</span>'; }
+function payPill(b){ return b.billing.status === 'outstanding' ? '<span class="pill bad">Outstanding</span>' : b.billing.status === 'paid' ? '<span class="pill ok">Payment recorded</span>' : '<span class="pill neutral">Estimate only</span>'; }
+function vDash(){
+  const d = S.dash, y = Y(d.yard), q = d.q.trim().toUpperCase();
+  const mine = S.bookings.filter(b => b.yard === y.id);
+  const match = b => !q || [b.code, b.truck.replace(/\s/g, ''), b.cont.replace(/\s/g, ''), b.driver.name.toUpperCase()].some(s => s.toUpperCase().includes(q.replace(/\s/g, '')) || s.toUpperCase().includes(q));
+  const list = mine.filter(match);
+  const today = dayIdx(S.now);
+  const arrivals = list.filter(b => b.status === 'booked').sort((a, b) => a.appt - b.appt);
+  const arrivalsToday = mine.filter(b => b.status === 'booked' && dayIdx(b.appt) === today).length;
+  const entered = list.filter(b => b.status === 'entered'), stored = list.filter(b => b.status === 'in_storage'), exited = list.filter(b => b.status === 'exited').sort((a, b) => b.storageEnd - a.storageEnd);
+  const used = teuUsed(y), pct = Math.round(used / y.capTEU * 100);
+  const outstanding = mine.filter(b => b.billing.status === 'outstanding').reduce((a, b) => a + b.billing.amount, 0);
+  const recorded = mine.filter(b => b.billing.status === 'paid').reduce((a, b) => a + b.billing.amount, 0);
+  const exc = S.exceptions.filter(x => x.yard === y.id && !x.reviewed);
+  const code = b => '<button class="rowbtn" data-sel="' + b.id + '">' + esc(b.code) + '</button>';
+  const tbl = (head, rows, empty) => rows.length ? '<div class="tw"><table class="dt"><thead><tr>' + head.map(h => '<th>' + h + '</th>').join('') + '</tr></thead><tbody>' + rows.join('') + '</tbody></table></div>' : '<p class="empty">' + empty + '</p>';
+  let html = '<div class="dash"><div class="dhead"><h2>Yard dashboard</h2><div class="ytabs" role="group" aria-label="Yard">' + YARDS.map(x => '<button data-dyard="' + x.id + '" aria-pressed="' + (x.id === y.id) + '">' + esc(x.name.en) + '</button>').join('') + '</div></div>' +
+    '<div class="note small">Demo yard and illustrative tariff. Times follow the demo clock (' + fdt(S.now) + '). No real payments are taken: staff record payments made outside YardFlow.</div>' +
+    '<div class="kpis"><div class="kpi"><div class="v">' + arrivalsToday + '</div><div class="l">Expected arrivals today</div></div>' +
+    '<div class="kpi"><div class="v">' + mine.filter(b => b.status === 'booked').length + '</div><div class="l">Booked, not yet arrived</div></div>' +
+    '<div class="kpi"><div class="v">' + mine.filter(b => b.status === 'in_storage' || b.status === 'entered').length + '</div><div class="l">Containers inside now</div></div>' +
+    '<div class="kpi"><div class="v">' + mine.filter(b => b.status === 'exited').length + '</div><div class="l">Collected (exited)</div></div>' +
+    '<div class="kpi"><div class="v">' + (y.capTEU - used) + '</div><div class="l">TEU free of ' + y.capTEU + ' (' + pct + '% used)</div><div class="bar"><i style="width:' + Math.min(100, pct) + '%"></i></div></div>' +
+    '<div class="kpi"><div class="v">' + inr(outstanding) + '</div><div class="l">Outstanding · ' + inr(recorded) + ' recorded</div></div></div>' +
+    '<label class="field" for="d-q"><span class="lab">Search bookings and containers</span><input class="search" id="d-q" data-dq="1" value="' + esc(d.q) + '" placeholder="Booking code, container, truck or driver" autocomplete="off"></label>' +
+    (q && !list.length ? '<p class="empty" role="status">No booking or container at this yard matches “' + esc(d.q) + '”.</p>' : '');
+  html += '<section class="dsec"><h3>Exceptions to review <span class="count">' + exc.length + '</span></h3>' + tbl(['Time','Booking','Issue',''], exc.map(x => '<tr><td class="n">' + fdt(x.t) + '</td><td class="mono">' + esc(x.code) + '</td><td>' + esc(x.text) + '</td><td><button class="btn sm" data-review="' + x.id + '">Mark reviewed</button></td></tr>'), 'Nothing to review.') + '</section>';
+  html += '<section class="dsec"><h3>Expected arrivals <span class="count">' + arrivals.length + '</span></h3>' + tbl(['Arrival','Booking','Truck','Container','Size / type','Estimate'], arrivals.map(b => '<tr><td class="n">' + fdt(b.appt) + '</td><td>' + code(b) + '</td><td class="mono">' + esc(b.truck) + '</td><td class="mono">' + esc(b.cont) + '</td><td>' + b.size + ' ft ' + b.type + '</td><td class="n">' + inr(b.est.total) + '</td></tr>'), 'No upcoming arrivals.') + '</section>';
+  html += '<section class="dsec"><h3>Entered, waiting to be placed <span class="count">' + entered.length + '</span></h3>' + tbl(['Booking','Truck','Container','Entered',''], entered.map(b => '<tr><td>' + code(b) + '</td><td class="mono">' + esc(b.truck) + '</td><td class="mono">' + esc(b.cont) + '</td><td class="n">' + fdt(b.enteredAt) + '</td><td><button class="btn sm" data-place="' + b.id + '">Container placed in storage</button></td></tr>'), 'No containers waiting at the gate area.') + '</section>';
+  html += '<section class="dsec"><h3>In storage <span class="count">' + stored.length + '</span></h3>' + tbl(['Booking','Container','Storage start','Time so far','Charge so far',''], stored.map(b => { const c = bill(y, b.size, b.type, b.storageStart, S.now); return '<tr><td>' + code(b) + '</td><td class="mono">' + esc(b.cont) + '</td><td class="n">' + fdt(b.storageStart) + '</td><td class="n">' + withLang('en', () => fdur(Math.max(60, Math.ceil((S.now - b.storageStart) / 60) * 60))) + '</td><td class="n">' + inr(c.total) + '</td><td><button class="btn sm" data-exit="' + b.id + '">Collected: end storage and bill</button></td></tr>'; }), 'No containers in storage.') + '</section>';
+  html += '<section class="dsec"><h3>Collected and billed <span class="count">' + exited.length + '</span></h3>' + tbl(['Booking','Container','Storage','Final bill','Payment',''], exited.map(b => '<tr><td>' + code(b) + '</td><td class="mono">' + esc(b.cont) + '</td><td class="n">' + fdt(b.storageStart) + ' → ' + fdt(b.storageEnd) + '</td><td class="n">' + inr(b.billing.amount) + '</td><td>' + payPill(b) + (b.payment ? '<div class="small">' + esc(b.payment.mode) + ' · ' + fdt(b.payment.at) + '</div>' : '') + '</td><td>' +
+    (b.billing.status === 'outstanding' ? (d.pay === b.id ? '<div class="payform"><select class="mini" id="pay-mode"><option>Cash</option><option>UPI</option><option>Bank transfer</option><option>Account / credit</option></select><input class="search" style="min-width:140px" id="pay-ref" placeholder="Receipt or ref (optional)"><button class="btn sm" data-paysave="' + b.id + '">Save record</button><button class="btn sm" data-paycancel="1">Cancel</button></div><div class="small">Records a payment made to the yard outside YardFlow. No money is collected here.</div>' : '<button class="btn sm" data-pay="' + b.id + '">Record payment</button>') : '') + '</td></tr>'), 'No collected containers yet.') + '</section>';
+  const sel = S.bookings.find(b => b.id === d.sel && b.yard === y.id);
+  if(sel){
+    const fin = sel.billing.calc;
+    html += '<section class="dsec" id="detail"><h3>Booking ' + esc(sel.code) + ' ' + dashStatus(sel) + '</h3><div class="detail"><div>' +
+      '<dl class="kv"><dt>Driver</dt><dd>' + esc(sel.driver.name) + ' · ' + esc(sel.driver.mob) + '</dd>' + (sel.owner ? '<dt>Booked by</dt><dd>' + esc(sel.owner.name) + ' · ' + esc(sel.owner.mob) + '</dd>' : '') +
+      '<dt>Truck</dt><dd class="mono">' + esc(sel.truck) + '</dd><dt>Container</dt><dd class="mono">' + esc(sel.cont) + ' · ' + sel.size + ' ft ' + sel.type + '</dd>' +
+      '<dt>Appointment</dt><dd>' + fdt(sel.appt) + ' · planned ' + withLang('en', () => fdur(sel.dur)) + '</dd><dt>Storage start</dt><dd>' + (sel.storageStart != null ? fdt(sel.storageStart) : 'Not started') + '</dd><dt>Storage end</dt><dd>' + (sel.storageEnd != null ? fdt(sel.storageEnd) : 'Not ended') + '</dd>' +
+      '<dt>Billing</dt><dd>' + payPill(sel) + '</dd>' + (sel.demo ? '<dt>Record</dt><dd>Seeded demo record</dd>' : '') + '</dl>' +
+      '<h3 style="margin-top:12px">Estimate at booking</h3>' + withLang('en', () => calcRows(sel.est)) +
+      (fin ? '<h3 style="margin-top:12px">Final bill (actual storage time)</h3>' + withLang('en', () => calcRows(fin, 'Final storage charge')) : '') +
+      '</div><div><h3>Event history</h3><ol class="tl">' + sel.events.slice().sort((a, b) => a.t - b.t).map(e => '<li><span class="w">' + fdt(e.t) + '</span><span>' + esc(e.type.replace(/_/g, ' ')) + (e.data && e.data.reason ? ': ' + esc(e.data.reason) : '') + (e.data && e.data.amount ? ' · ' + esc(e.data.amount) : '') + (e.data && e.data.mode ? ' · ' + esc(e.data.mode) : '') + '</span></li>').join('') + '</ol></div></div></section>';
+  }
+  const tf = y.tariff;
+  html += '<section class="dsec"><h3>Tariff configuration (demo)</h3><div class="cfg">Basis: <b>' + ({hour:'per started hour', block24:'per started 24-hour block', calendar:'per calendar day or part thereof'}[tf.unit]) + '</b> · Minimum: <b>' + withLang('en', () => unitCount(tf.min, tf.unit)) + '</b> · Maximum stay: <b>' + withLang('en', () => unitCount(tf.max.n, tf.max.u === 'day' ? 'day' : 'h')) + '</b> · Sizes: <b>' + y.sizes.join(', ') + ' ft</b> · Types: <b>' + y.types.join(', ') + '</b> · Hours: <b>' + (y.open[1] - y.open[0] === 24 ? '24 h' : pad(y.open[0]) + ':00–' + pad(y.open[1]) + ':00') + '</b> · Entry window: <b>−' + y.early + ' / +' + y.late + ' min</b> · Arrival slots per hour: <b>' + y.capHour + '</b></div><ul class="facts" style="margin-top:6px">' + withLang('en', () => [20, 40].filter(s => y.sizes.includes(s)).map(s => tariffLines(y, s, y.types.includes('reefer') ? 'reefer' : 'dry').map(x => '<li>' + esc(x) + '</li>').join('')).join('')) + '<li>Billing starts when the container is placed in storage and ends when it is collected.</li></ul></section></div>';
+  return html;
+}
+
+/* =========================================================
+   Rail and render
+   ========================================================= */
+function vRail(){
+  return '<section class="panel"><h3>Demo controls</h3><div class="ctrl">' +
+    '<div class="row"><span>Demo clock</span><span class="clock" id="clock">' + fdt(S.now) + '</span></div>' +
+    '<div class="clockbtns"><button data-adv="30">+30 min</button><button data-adv="60">+1 h</button><button data-adv="360">+6 h</button><button data-adv="1440">+1 day</button></div>' +
+    '<div class="row"><span>YardFlow server</span><span class="mseg"><button id="srv-on" aria-pressed="' + S.server + '">Online</button><button id="srv-off" aria-pressed="' + !S.server + '">Down</button></span></div>' +
+    '<div class="row"><span>Gate controller reply (simulated)</span><span class="mseg"><button id="gate-on" aria-pressed="' + S.gateAck + '">Replies</button><button id="gate-off" aria-pressed="' + !S.gateAck + '">No reply</button></span></div>' +
+    '<div class="row"><label for="gate-yard">Security gate is at</label><select class="mini" id="gate-yard">' + YARDS.map(y => '<option value="' + y.id + '"' + (y.id === S.gateYard ? ' selected' : '') + '>' + esc(y.name.en) + '</option>').join('') + '</select></div>' +
+    '<div class="row"><span class="hint">Restart the demo with fresh sample data.</span><button class="linkbtn" id="reset">Reset demo</button></div></div></section>' +
+    '<section class="panel"><h3>Event log</h3><div class="log" role="log" aria-label="Event log">' + (S.events.length ? S.events.slice().sort((a, b) => b.t - a.t).slice(0, 40).map(e => '<div><span class="ts">' + fdt(e.t) + '</span><span><span class="ev">' + e.type + '</span><span class="fx">' + Object.entries(e.data || {}).map(([k, v]) => k + '=' + esc(v)).join(' · ') + '</span></span></div>').join('') : '<p class="empty">No events yet.</p>') + '</div></section>' +
+    '<section class="panel"><h3>What is original and what is proposed</h3><ul class="evid">' +
+    '<li><span class="tag">C</span>Original prototype: slot booking, gate staff scanning a QR with a phone, booking check, ESP32 gate control. Demonstrated; never deployed; code lost.</li>' +
+    '<li><span class="tag">P</span>Proposed here: multi-yard search, duration-based storage, English/Hindi booking, configurable tariffs, storage lifecycle and exit billing.</li>' +
+    '<li><span class="tag">A</span>Yards, prices, people, trucks and containers are invented demo data. Tariff structures follow published Indian CFS/ICD/terminal schedules; amounts are illustrative.</li>' +
+    '<li><span class="tag">S</span>Gate opening, controller replies and the QR are simulated. No hardware is controlled and no message or payment is sent.</li></ul></section>';
+}
+function render(){
+  const keep = {}; document.querySelectorAll('#main input[id], #main select[id]').forEach(el => { if(el.type !== 'checkbox') keep[el.id] = el.value; });
+  const focusId = document.activeElement && document.activeElement.id;
+  document.querySelectorAll('.roles button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.role === S.role)));
+  $('#grid').className = 'grid' + (S.role === 'dash' ? ' wide' : '');
+  let html;
+  if(S.role === 'book') html = ({search:vSearch, results:vResults, details:vDetails, review:vReview, done:vDone, mine:vMine})[S.step]();
+  else if(S.role === 'gate') html = vGate();
+  else html = vDash();
+  $('#main').innerHTML = html;
+  $('#rail').innerHTML = vRail();
+  ['pay-ref'].forEach(k => { const el = document.getElementById(k); if(el && keep[k]) el.value = keep[k]; });
+  const c = document.getElementById('qr'); if(c) drawQR(c, S.bookings.find(b => b.id === S.openId).code);
+  if(focusId){ const el = document.getElementById(focusId); if(el && el.focus) try { el.focus({preventScroll:true}); } catch(e){} }
+}
+function drawQR(c, seedStr){
+  const n = 29, x = c.getContext('2d'); let h = 2166136261;
+  for(const ch of seedStr){ h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const rnd = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; };
+  x.fillStyle = '#fff'; x.fillRect(0, 0, n, n); x.fillStyle = '#111';
+  for(let i = 2; i < n - 2; i++) for(let j = 2; j < n - 2; j++) if(rnd() > .52) x.fillRect(i, j, 1, 1);
+  [[2,2],[n-9,2],[2,n-9]].forEach(([a, b]) => { x.fillStyle = '#fff'; x.fillRect(a-1, b-1, 9, 9); x.fillStyle = '#111'; x.fillRect(a, b, 7, 7); x.fillStyle = '#fff'; x.fillRect(a+1, b+1, 5, 5); x.fillStyle = '#111'; x.fillRect(a+2, b+2, 3, 3); });
+}
+
+/* =========================================================
+   Events
+   ========================================================= */
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(el.dataset.in){ S.f[el.dataset.in] = el.value; if(S.err[el.dataset.in]){ delete S.err[el.dataset.in]; el.removeAttribute('aria-invalid'); const p = el.parentElement.querySelector('.err'); if(p) p.remove(); } }
+  if(el.dataset.gin) S.g[el.dataset.gin] = el.value;
+  if(el.dataset.dq){ S.dash.q = el.value; render(); }
+});
+document.addEventListener('change', e => {
+  const el = e.target;
+  if(el.dataset.sel){ S.f[el.dataset.sel] = +el.value; delete S.err.hour; render(); }
+  if(el.dataset.chk){ S.f[el.dataset.chk] = el.checked; delete S.err.agree; }
+  if(el.id === 'gate-yard'){ S.gateYard = el.value; S.g.screen = 'scan'; S.g.bk = null; render(); }
+});
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if(!t) return;
+  const id = t.id, ds = t.dataset;
+  if(ds.role){ S.role = ds.role; render(); return; }
+  if(id === 'lang'){ S.lang = S.lang === 'en' ? 'hi' : 'en'; render(); return; }
+  if(ds.adv){ S.now += +ds.adv; render(); return; }
+  if(id === 'srv-on' || id === 'srv-off'){ S.server = id === 'srv-on'; render(); return; }
+  if(id === 'gate-on' || id === 'gate-off'){ S.gateAck = id === 'gate-on'; render(); return; }
+  if(id === 'reset'){ const l = S.lang; seed(); S.lang = l; render(); return; }
+  /* booking */
+  if(ds.f){ const v = ds.v; S.f[ds.f] = (ds.f === 'day' || ds.f === 'size') ? +v : v; if(ds.f === 'durUnit') delete S.err.durVal; render(); return; }
+  if(id === 'dur-minus' || id === 'dur-plus'){ const v = Math.max(1, Math.round(+S.f.durVal || 0) + (id === 'dur-plus' ? 1 : -1)); S.f.durVal = String(v); delete S.err.durVal; render(); return; }
+  if(id === 'do-search'){ S.flash = ''; if(validateSearch()){ S.step = 'results'; log('yard_search', {size:S.f.size, type:S.f.type, stay:withLang('en', () => fdur(req().dur)), arrival:fdt(req().appt)}); } render(); return; }
+  if(id === 'to-search' || id === 'to-search2'){ S.step = 'search'; render(); return; }
+  if(ds.yard){ S.f.yard = ds.yard; S.f.agree = false; S.err = {}; S.step = 'details'; render(); return; }
+  if(id === 'to-results'){ S.err = {}; S.step = 'results'; render(); return; }
+  if(id === 'to-review'){ if(validateDetails()) S.step = 'review'; render(); return; }
+  if(id === 'to-details'){ S.err = {}; S.step = 'details'; render(); return; }
+  if(id === 'do-book'){
+    const f = S.f; if(!f.agree){ S.err = {agree:{k:'e_agree'}}; render(); return; }
+    const y = Y(f.yard), r = req(), ev = evaluate(y, r);
+    if(!ev.ok){ S.err = {full:{k:'e_full'}}; render(); return; }
+    const b = mkBooking({code:newCode(), yard:y.id, size:r.size, type:r.type, appt:r.appt, dur:r.dur, truck:f.truck, cont:f.cont, driver:{name:f.dname.trim(), mob:f.dmob.replace(/\D/g, '')}, owner:f.who === 'other' ? {name:f.oname.trim(), mob:f.omob.replace(/\D/g, '')} : null});
+    S.bookings.push(b); S.mine.push(b.id); S.openId = b.id; S.copyMsg = '';
+    log('booking_confirmed', {code:b.code, yard:y.id, appointment:fdt(b.appt), estimate:inr(b.est.total), for_other_driver:!!b.owner}, b);
+    S.err = {}; S.step = 'done'; render(); return;
+  }
+  if(id === 'copy-share'){
+    const txt = $('#share-text').value;
+    const fail = () => { S.copyMsg = 'copy_fail'; render(); const ta = $('#share-text'); if(ta){ ta.focus(); ta.select(); } };
+    try { if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(() => { S.copyMsg = 'copied'; log('pass_details_copied', {code:S.bookings.find(b => b.id === S.openId).code}); render(); }, fail); } else fail(); } catch(err){ fail(); }
+    return;
+  }
+  if(id === 'to-mine' || id === 'to-mine2'){ S.flash = ''; S.confirmCancel = null; S.step = 'mine'; render(); return; }
+  if(id === 'new-search' || id === 'new-search2'){ S.flash = ''; S.step = 'search'; render(); return; }
+  if(ds.open){ S.openId = ds.open; S.copyMsg = ''; S.step = 'done'; render(); return; }
+  if(ds.cancel){ S.confirmCancel = ds.cancel; render(); return; }
+  if(ds.cancelNo){ S.confirmCancel = null; render(); return; }
+  if(ds.cancelYes){ const b = S.bookings.find(x => x.id === ds.cancelYes); if(b && b.status === 'booked'){ b.status = 'cancelled'; log('booking_cancelled', {code:b.code}, b); S.flash = 'cancelled_ok'; } S.confirmCancel = null; render(); return; }
+  /* gate */
+  if(ds.scan){ if(ds.scan === 'UNREADABLE'){ S.g.hint = true; log('scan_unreadable', {yard:S.gateYard}); render(); return; } gateVerify(ds.scan); return; }
+  if(id === 'g-check'){ const v = String(S.g.code || '').trim(); if(!v){ S.g.codeErr = true; render(); return; } gateVerify(v); return; }
+  if(id === 'g-retry'){ gateVerify(S.g.lastCode || S.g.code); return; }
+  if(id === 'g-next'){ Object.assign(S.g, {screen:'scan', bk:null, checks:[], gate:'idle', code:'', reason:null, reviewSent:false, hint:false, truckOk:null, contOk:null}); render(); return; }
+  if(ds.yn){
+    const g = S.g, ok = ds.v === '1';
+    if(ds.yn === 'truck'){ g.truckOk = ok; g.checks.find(c => c.k === 'chk_truck').ok = ok; }
+    else { g.contOk = ok; g.checks.find(c => c.k === 'chk_cont').ok = ok; }
+    if(!ok){ const isT = ds.yn === 'truck'; g.reason = {k:isT ? 'f_truck' : 'f_cont', v:{exp:isT ? g.bk.truck : g.bk.cont}}; g.screen = 'refused';
+      log('gate_refused', {code:g.bk.code, reason:TL('en', g.reason.k, g.reason.v)}, g.bk); addException(S.gateYard, g.bk, (isT ? 'Truck number did not match ' : 'Container number did not match ') + (isT ? g.bk.truck : g.bk.cont) + '. Entry refused at the gate.'); }
+    render(); return;
+  }
+  if(id === 'g-review'){ const g = S.g; if(g.reason.k === 'f_early' || g.reason.k === 'f_late') addException(S.gateYard, g.bk, 'Arrived outside the entry window (' + TL('en', g.reason.k, g.reason.v) + '). Supervisor to decide; gate kept closed.'); g.reviewSent = true; render(); return; }
+  if(id === 'g-open'){ if(!(S.g.truckOk && S.g.contOk)) return; if(!S.server){ S.g.screen = 'down'; render(); return; } sendGate(); return; }
+  if(id === 'g-retrygate'){ sendGate(); return; }
+  if(id === 'g-fault'){ const g = S.g; g.gate = 'fault'; g.cmd++; log('gate_fault_reported', {code:g.bk.code}, g.bk); addException(S.gateYard, g.bk, 'Gate controller did not confirm opening after ' + g.attempts + ' attempt(s). Truck not entered; booking still valid.'); render(); return; }
+  /* dashboard */
+  if(ds.dyard){ S.dash.yard = ds.dyard; S.dash.sel = null; S.dash.pay = null; render(); return; }
+  if(ds.sel){ S.dash.sel = ds.sel; render(); const d = document.getElementById('detail'); if(d) d.scrollIntoView({block:'nearest'}); return; }
+  if(ds.place){ const b = S.bookings.find(x => x.id === ds.place); if(b && b.status === 'entered'){ b.status = 'in_storage'; b.storageStart = S.now; log('storage_started', {code:b.code, container:b.cont}, b); } render(); return; }
+  if(ds.exit){ const b = S.bookings.find(x => x.id === ds.exit); if(b && b.status === 'in_storage'){ b.status = 'exited'; b.storageEnd = S.now; finalize(b, true); S.dash.sel = b.id; } render(); return; }
+  if(ds.pay){ S.dash.pay = ds.pay; render(); return; }
+  if(ds.paycancel){ S.dash.pay = null; render(); return; }
+  if(ds.paysave){ const b = S.bookings.find(x => x.id === ds.paysave); if(b && b.billing.status === 'outstanding'){ const mode = $('#pay-mode').value, ref = ($('#pay-ref').value || '').trim(); b.billing.status = 'paid'; b.payment = {mode, ref, at:S.now, by:'Yard staff'}; log('payment_recorded', {code:b.code, amount:inr(b.billing.amount), mode, ref:ref || '—', note:'recorded by staff; no money handled by YardFlow'}, b); } S.dash.pay = null; render(); return; }
+  if(ds.review){ const x = S.exceptions.find(z => z.id === ds.review); if(x){ x.reviewed = true; log('exception_reviewed', {code:x.code}); } render(); return; }
+});
+seed();
+render();
+})();
+</script>
